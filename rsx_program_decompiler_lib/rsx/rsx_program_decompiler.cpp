@@ -262,7 +262,16 @@ namespace rsx
 			for (auto &line : entry.second.code_lines)
 			{
 				tab_count += line.tab_before;
-				result.append(tab_count, '\t') += line.value + "\n";
+
+				if (line.value.empty())
+				{
+					result += "\n";
+				}
+				else
+				{
+					result.append(tab_count, '\t') += line.value + "\n";
+				}
+
 				tab_count += line.tab_after;
 			}
 		}

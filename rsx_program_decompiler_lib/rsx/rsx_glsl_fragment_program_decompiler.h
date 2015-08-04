@@ -69,7 +69,7 @@ namespace rsx
 
 			__forceinline static std::string function_begin(const std::string& name)
 			{
-				return "\nvoid " + name + "() {";
+				return "\nvoid " + name + "()\n{";
 			}
 
 			__forceinline static std::string function_end()
@@ -199,7 +199,7 @@ namespace rsx
 					case 7: value = "(" + value + " / 8.0)"; break;
 
 					default:
-						throw std::runtime_error("fragment program decompiler: unimplemented scale.");
+						throw std::runtime_error("fragment program decompiler: unimplemented scale (" + std::to_string(dec->ucode.src1.scale) + "). ");
 					}
 
 					if (dec->ucode.dst.saturate)
@@ -278,10 +278,10 @@ namespace rsx
 						{
 							if (!last_condition_group.empty())
 							{
-								result += "}\n";
+								result += "}\n\n";
 							}
 
-							result += "if (" + channel_execution_condition.to_string() + " " + execution_condition_operation + " 0.0f) {\n";
+							result += "if (" + channel_execution_condition.to_string() + " " + execution_condition_operation + " 0.0f)\n{\n";
 							last_condition_group = channel_execution_condition_mask;
 							last_line.clear();
 						}
@@ -311,14 +311,14 @@ namespace rsx
 					}
 
 					if (!last_condition_group.empty())
-						result += "}\n";
+						result += "}\n\n";
 				}
 				return result;
 			}
 
 			static std::string finalyze(decompiler *dec)
 			{
-				std::string result = "\nvoid main() {\n";
+				std::string result = "\nvoid main()\n{\n";
 				result += "\tlabel0();\n";
 
 				struct destination_info
