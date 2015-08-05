@@ -101,7 +101,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
     <OutDir>$(SolutionDir)lib\</OutDir>
     <IntDir>tmp\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>rsx_program_decompiler-$(Platform)-$(Configuration)</TargetName>
@@ -141,7 +141,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <EnablePREfast>true</EnablePREfast>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -222,7 +222,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fmt.cpp" />
-    <ClCompile Include="rsx\rsx_fragment_program_decompiler.cpp" />
     <ClCompile Include="rsx\rsx_program_decompiler.cpp" />
     <ClCompile Include="rsx\rsx_vertex_program_decompiler.cpp" />
   </ItemGroup>

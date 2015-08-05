@@ -2,6 +2,7 @@
 #include "rsx_fragment_program.h"
 #include "rsx_program_decompiler.h"
 #include <unordered_set>
+#include "endianness.h"
 
 namespace rsx
 {
@@ -21,9 +22,9 @@ namespace rsx
 		struct cond {};
 		template<typename T> struct arg {};
 
-		union ucode_data
+		union alignas(16) ucode_data
 		{
-			struct
+			struct alignas(16)
 			{
 				OPDEST dst;
 				SRC0 src0;
@@ -32,7 +33,21 @@ namespace rsx
 			};
 
 			u32 data[4];
+
+			ucode_data unpack()
+			{
+				ucode_data result;
+
+				result.data[0] = endianness::swap(data[0]); result.data[0] = (result.data[0] << 16) | (result.data[0] >> 16);
+				result.data[1] = endianness::swap(data[1]); result.data[1] = (result.data[1] << 16) | (result.data[1] >> 16);
+				result.data[2] = endianness::swap(data[2]); result.data[2] = (result.data[2] << 16) | (result.data[2] >> 16);
+				result.data[3] = endianness::swap(data[3]); result.data[3] = (result.data[3] << 16) | (result.data[3] >> 16);
+
+				return result;
+			}
 		};
+
+		static_assert(sizeof(ucode_data) == 4 * 4, "bad ucode_data");
 
 		template<typename decompiler_impl>
 		class decompiler;
@@ -53,9 +68,9 @@ namespace rsx
 		};
 
 		using MOV = instruction < opcode::MOV, H | C, dest<4>, arg<src<0, 4>> >;
-		using MUL = instruction < opcode::MUL, H | C, dest<4>, arg<src<0, 4>> >;
-		using ADD = instruction < opcode::ADD, H | C, dest<4>, arg<src<0, 4>> >;
-		using MAD = instruction < opcode::MAD, H | C, dest<4>, arg<src<0, 4>>, arg<src<2, 4>> >;
+		using MUL = instruction < opcode::MUL, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
+		using ADD = instruction < opcode::ADD, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
+		using MAD = instruction < opcode::MAD, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>>, arg<src<2, 4>> >;
 		using DP3 = instruction < opcode::DP3, H | C, dest<3>, arg<src<0, 3>>, arg<src<1, 3>> >;
 		using DP4 = instruction < opcode::DP4, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using DST = instruction < opcode::DST, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
@@ -151,9 +166,9 @@ namespace rsx
 		{
 			ucode_data* ucode_ptr;
 			u32 ucode_size;
+			u32 ucode_index;
 
 		public:
-			int code_line_index = 0;
 			bool is_next_constant = false;
 
 			fragment_program::info info;
@@ -212,23 +227,54 @@ namespace rsx
 					case 2: get_data_from(src2); break;
 					}
 
-					variable.name = is_fp16 ? "H" : "R";
 					bool need_declare = true;
 
 					switch (type)
 					{
 					case 0: //temporary register
+						variable.name = is_fp16 ? "H" : "R";
 						variable.type = program_variable_type::none;
 						break;
 
 					case 1: //input register
-						variable.index = dst.src_attr_reg_num;
+					{
 						variable.type = program_variable_type::input;
-						break;
+
+						if (0)
+						{
+							variable.index = dst.src_attr_reg_num;
+							variable.name = "fragment_input";
+							variable.array_size = 15;
+						}
+						else
+						{
+							static const std::string register_table[] =
+							{
+								"position",
+								"diff_color", "spec_color",
+								"fogc",
+								"tc0", "tc1", "tc2", "tc3", "tc4", "tc5", "tc6", "tc7", "tc8", "tc9",
+								"ssa"
+							};
+
+							variable.index = ~0;
+							variable.type = program_variable_type::input;
+							variable.name = register_table[dst.src_attr_reg_num];
+						}
+					}
+					break;
 
 					case 2: //constant
 						need_declare = false;
 						decompiler.is_next_constant = true;
+						variable.constant.type = program_constant_type::f32;
+						{
+							ucode_data constant = decompiler.ucode_ptr[decompiler.ucode_index + 1].unpack();
+							variable.constant.x.i32_value = constant.data[0];
+							variable.constant.y.i32_value = constant.data[1];
+							variable.constant.z.i32_value = constant.data[2];
+							variable.constant.w.i32_value = constant.data[3];
+						}
 						break;
 					}
 
@@ -350,7 +396,7 @@ namespace rsx
 
 			void set_code_line(const std::string &code_line)
 			{
-				program_decompiler_core::builder.add_code_block(code_line_index, code_line);
+				program_decompiler_core::builder.add_code_block(ucode_index, code_line);
 			}
 
 			template<opcode id, u32 flags, int count>
@@ -359,8 +405,10 @@ namespace rsx
 				set_code_line(decompiler_impl::set_dst<id, flags, count>(this, arg0, arg1, arg2));
 			}
 
-			void unknown_instruction()
+			void unknown_instruction(u32 opcode)
 			{
+				throw std::runtime_error("unimplemented instruction '" + instructions_names[opcode] + "' (" + std::to_string(opcode) + ") #"
+					+ std::to_string(ucode_index));
 			}
 
 			std::string function_begin(const std::string& name)
@@ -391,29 +439,49 @@ namespace rsx
 					nullptr, BRK::impl, CAL::impl, IFE::impl, LOOP::impl, REP::impl, RET::impl
 				};
 
-				code_line_index = 0;
-
-				for (u32 i = 0; i < ucode_size; ++i)
+				for (ucode_index = 0; ucode_index < ucode_size; ++ucode_index)
 				{
-					ucode = ucode_ptr[i];
+					if (is_next_constant)
+					{
+						is_next_constant = false;
+						continue;
+					}
 
-					ucode.data[0] = (ucode.data[0] << 16) | (ucode.data[0] >> 16);
-					ucode.data[1] = (ucode.data[1] << 16) | (ucode.data[1] >> 16);
-					ucode.data[2] = (ucode.data[2] << 16) | (ucode.data[2] >> 16);
-					ucode.data[3] = (ucode.data[3] << 16) | (ucode.data[3] >> 16);
+					ucode = ucode_ptr[ucode_index].unpack();
 
 					const u32 opcode = ucode.dst.opcode | (ucode.src1.opcode_is_branch << 6);
 
-					auto function = instructions[opcode];
+					//if (ucode_index == 20)
+					//	break;
 
-					if (function)
+					if (opcode != 0)
 					{
-						function(*this);
-						code_line_index++;
-					}
-					else
-					{
-						unknown_instruction();
+						auto function = instructions[opcode];
+
+						try
+						{
+							if (function)
+							{
+								function(*this);
+							}
+							else
+							{
+								unknown_instruction(opcode);
+							}
+						}
+						catch (...)
+						{
+							std::exception_ptr ex_p = std::current_exception();
+
+							try
+							{
+								std::rethrow_exception(ex_p);
+							}
+							catch (const std::exception& ex)
+							{
+								throw std::out_of_range(ex.what());
+							}
+						}
 					}
 
 					if (ucode.dst.end)
@@ -425,9 +493,8 @@ namespace rsx
 				std::string end = decompiler_impl::finalyze(this);
 
 				builder.add_code_block(0, decompiler_impl::get_header(this), 0, 0, false);
-				builder.add_code_block(code_line_index, function_end(), -1, 0);
-
-				builder.add_code_block(code_line_index, end);
+				builder.add_code_block(ucode_index, function_end(), -1, 0);
+				builder.add_code_block(ucode_index, end);
 
 				info.text = builder.build();
 				return info;

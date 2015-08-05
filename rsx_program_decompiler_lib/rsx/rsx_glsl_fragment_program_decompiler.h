@@ -1,6 +1,7 @@
 #pragma once
 #include "rsx_program_decompiler.h"
 #include "rsx_fragment_program_decompiler.h"
+#include <cassert>
 
 namespace rsx
 {
@@ -35,7 +36,8 @@ namespace rsx
 					}
 
 					result += var.second.storage_type + " " + var.second.name +
-						(var.second.array_size ? ("[" + std::to_string(var.second.array_size + 1) + "]") : std::to_string(var.second.index)) + ";\n";
+						(var.second.array_size ? ("[" + std::to_string(var.second.array_size + 1) + "]") :
+							(var.second.index != ~0 ? std::to_string(var.second.index) : std::string{})) + ";\n";
 				}
 
 				for (auto &func : dec->functions_set)
@@ -56,7 +58,21 @@ namespace rsx
 
 			__forceinline static std::string variable_to_string(const program_variable& arg)
 			{
-				fmt::string result = arg;
+				fmt::string result;
+
+				if (arg.constant.type == program_constant_type::none)
+				{
+					result = arg;
+				}
+				else
+				{
+					assert(arg.constant.type == program_constant_type::f32);
+					result = fmt::format("vec4(%g, %g, %g, %g)",
+						arg.constant.x.f32_value,
+						arg.constant.y.f32_value,
+						arg.constant.z.f32_value,
+						arg.constant.w.f32_value);
+				}
 
 				if (arg.is_abs)
 					result = "abs(" + result + ")";
@@ -181,11 +197,12 @@ namespace rsx
 						break;
 
 					case 1: //fp16, clamping
-						value += "clamp(" + value + ", -65536, 65536)";
+						value = "clamp(" + value + ", -65536, 65536)";
 						break;
 
 					case 2: //fixed point 12? let it be unimplemented, atm
-						throw std::runtime_error("fragment program decompiler: unimplemented precision.");
+						value = "clamp(" + value + ", 0, 0)";
+						//throw std::runtime_error("fragment program decompiler: unimplemented precision.");
 					}
 
 					switch (dec->ucode.src1.scale)
@@ -204,7 +221,7 @@ namespace rsx
 
 					if (dec->ucode.dst.saturate)
 					{
-						value += "clamp(" + value + ", 0, 1)";
+						value = "clamp(" + value + ", 0, 1)";
 					}
 				}
 

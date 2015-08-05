@@ -36,9 +36,6 @@
     <ClCompile Include="rsx\rsx_program_decompiler.cpp">
       <Filter>rsx</Filter>
     </ClCompile>
-    <ClCompile Include="rsx\rsx_fragment_program_decompiler.cpp">
-      <Filter>rsx</Filter>
-    </ClCompile>
     <ClCompile Include="rsx\rsx_vertex_program_decompiler.cpp">
       <Filter>rsx</Filter>
     </ClCompile>

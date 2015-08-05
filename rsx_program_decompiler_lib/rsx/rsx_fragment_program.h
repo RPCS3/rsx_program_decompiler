@@ -76,7 +76,7 @@ namespace rsx
 			RET = 0x45  // Return
 		};
 
-		union OPDEST
+		union alignas(4) OPDEST
 		{
 			u32 HEX;
 
@@ -100,7 +100,7 @@ namespace rsx
 			};
 		};
 
-		union SRC0
+		union alignas(4) SRC0
 		{
 			u32 HEX;
 
@@ -127,7 +127,7 @@ namespace rsx
 			};
 		};
 
-		union SRC1
+		union alignas(4) SRC1
 		{
 			u32 HEX;
 
@@ -165,7 +165,7 @@ namespace rsx
 			};
 		};
 
-		union SRC2
+		union alignas(4) SRC2
 		{
 			u32 HEX;
 

@@ -80,7 +80,7 @@ namespace rsx
 		if (array_size)
 			return name + "[" + std::to_string(index) + "]";
 
-		return name + std::to_string(index);
+		return index != ~0 ? name + std::to_string(index) : name;
 	}
 
 	std::string program_variable::append_dot_if_not_empty(const std::string& string) const
@@ -90,7 +90,7 @@ namespace rsx
 
 	std::string program_variable::storage_name() const
 	{
-		return name + (array_size ? "[" + std::to_string(array_size + 1) + "]" : std::to_string(index));
+		return name + (array_size ? "[" + std::to_string(array_size + 1) + "]" : (index != ~0 ? std::to_string(index) : std::string{}));
 	}
 
 	std::string program_variable::to_string() const
@@ -105,7 +105,7 @@ namespace rsx
 
 	bool program_variable::is_null() const
 	{
-		return name.empty();
+		return name.empty() && constant.type == program_constant_type::none;
 	}
 
 	program_variable::operator bool() const

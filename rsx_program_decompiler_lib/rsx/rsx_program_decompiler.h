@@ -29,6 +29,31 @@ namespace rsx
 		std::string to_string();
 	};
 
+
+	enum class program_constant_type
+	{
+		none,
+		f32,
+		f64,
+		i32,
+		i64
+	};
+
+	struct program_constant
+	{
+		program_constant_type type;
+
+		union swizzle_t
+		{
+			float f32_value;
+			double f64_value;
+			u32 i32_value;
+			u64 i64_value;
+		};
+
+		swizzle_t x, y, z, w;
+	};
+
 	struct program_variable
 	{
 		std::string name;
@@ -40,6 +65,8 @@ namespace rsx
 		u32 array_size;
 		bool is_neg;
 		bool is_abs;
+		std::string initialization;
+		program_constant constant;
 
 	private:
 		std::string to_string_impl() const;
