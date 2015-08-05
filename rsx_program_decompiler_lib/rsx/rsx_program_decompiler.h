@@ -11,7 +11,8 @@ namespace rsx
 		none,
 		input,
 		output,
-		constant
+		constant,
+		texture
 	};
 
 	struct mask_t
@@ -27,6 +28,8 @@ namespace rsx
 	public:
 		std::string to_string() const;
 		std::string to_string();
+
+		std::string apply_to(const std::string& std) const;
 	};
 
 
@@ -70,7 +73,6 @@ namespace rsx
 
 	private:
 		std::string to_string_impl() const;
-		std::string append_dot_if_not_empty(const std::string& string) const;
 
 	public:
 		std::string storage_name() const;

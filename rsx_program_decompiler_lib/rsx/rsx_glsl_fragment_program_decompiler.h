@@ -21,6 +21,7 @@ namespace rsx
 					case program_variable_type::input: result += "in "; break;
 					case program_variable_type::output: result += "layout(location = " + std::to_string(var.second.index) + ") out "; break;
 					case program_variable_type::constant: result += "uniform "; break;
+					case program_variable_type::texture: result += "layout(binding = " + std::to_string(var.second.index) + ") uniform "; break;
 					}
 
 					if (var.second.storage_type.empty())
@@ -51,8 +52,6 @@ namespace rsx
 			__forceinline static program_variable texture_variable(program_variable arg)
 			{
 				arg.storage_type = "sampler2D";
-				arg.type = program_variable_type::constant;
-
 				return arg;
 			}
 
@@ -67,11 +66,41 @@ namespace rsx
 				else
 				{
 					assert(arg.constant.type == program_constant_type::f32);
-					result = fmt::format("vec4(%g, %g, %g, %g)",
-						arg.constant.x.f32_value,
-						arg.constant.y.f32_value,
-						arg.constant.z.f32_value,
-						arg.constant.w.f32_value);
+
+					std::string mask = arg.mask.to_string();
+					std::unordered_map<char, float> constant_map =
+					{
+						{ 'x', arg.constant.x.f32_value },
+						{ 'y', arg.constant.y.f32_value },
+						{ 'z', arg.constant.z.f32_value },
+						{ 'w', arg.constant.w.f32_value },
+					};
+
+					if (mask.empty())
+					{
+						result = fmt::format("vec4(%g, %g, %g, %g)",
+							arg.constant.x.f32_value,
+							arg.constant.y.f32_value,
+							arg.constant.z.f32_value,
+							arg.constant.w.f32_value);
+					}
+					else if (mask.size() == 1)
+					{
+						result = fmt::format("%g", constant_map[mask[0]]);
+					}
+					else
+					{
+						result = fmt::format("vec%d(", mask.size());
+
+						for (size_t i = 0; i < mask.size(); ++i)
+						{
+							if (i)
+								result += ", ";
+							result += fmt::format("%g", constant_map[mask[i]]);
+						}
+
+						result += ")";
+					}
 				}
 
 				if (arg.is_abs)
@@ -120,7 +149,7 @@ namespace rsx
 					"ddx", "ddy", "texture", "txp", "txd", "rcp", "rsq",
 					"exp2", "log2", "lit", "lrp", "str", "sfl", "cos",
 					"sin", "pk2", "up2", "pow", "pkb", "upb", "pk16",
-					"up16", "bem" "pkg", "upg", "dpa2", "txl", "?",
+					"up16", "bem", "pkg", "upg", "dpa2", "txl", "?",
 					"txb", "?", "texbem", "txpbem", "bemlum", "refl", "timeswtex",
 					"dot", "normalize", "?", "divsq", "lif", "fenct", "fencb",
 					"?", "break", "cal", "ife", "loop", "rep", "return"
@@ -138,17 +167,17 @@ namespace rsx
 
 					if (!arg0.is_null())
 					{
-						value += variable_to_string(arg0);
+						value = variable_to_string(arg0);
 
 						if (!arg1.is_null())
 						{
-							value += " " + std::string(1, operators[(std::size_t)id]) + " " + variable_to_string(arg1);
+							value = "(" + value + " " + std::string(1, operators[(std::size_t)id]) + " " + variable_to_string(arg1) + ")";
 						}
 					}
 					break;
 
 				case opcode::DIVSQ:
-					value += variable_to_string(arg0) + " / sqrt(" + variable_to_string(arg1) + ")";
+					value = "(" + variable_to_string(arg0) + " / sqrt(" + variable_to_string(arg1) + "))";
 					break;
 
 				case opcode::LIF:
@@ -255,12 +284,13 @@ namespace rsx
 				{
 					program_variable execution_condition = dec->execution_condition();
 					mask_t update_mask;
-					update_mask.add(dst.mask.to_string());
-					update_mask.add(execution_condition.mask.to_string());
-					update_mask.add(fmt::string("xyzw").substr(0, count));
+					update_mask
+						.add(execution_condition.mask.to_string())
+						.add(dst.mask.to_string());
+
+					update_mask = mask_t{}.add(update_mask.to_string().substr(0, count));
 
 					fmt::string execution_condition_string = execution_condition;
-
 					std::string execution_condition_operation;
 
 					if (dec->ucode.src0.exec_if_gr && dec->ucode.src0.exec_if_eq)

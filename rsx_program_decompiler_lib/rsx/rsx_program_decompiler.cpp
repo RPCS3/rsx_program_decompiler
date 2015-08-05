@@ -75,6 +75,16 @@ namespace rsx
 		return symplify().to_string_impl();
 	}
 
+	std::string mask_t::apply_to(const std::string& expr) const
+	{
+		std::string mask = to_string();
+
+		if (mask.empty())
+			return expr;
+
+		return expr + "." + mask;
+	}
+
 	std::string program_variable::to_string_impl() const
 	{
 		if (array_size)
@@ -83,11 +93,6 @@ namespace rsx
 		return index != ~0 ? name + std::to_string(index) : name;
 	}
 
-	std::string program_variable::append_dot_if_not_empty(const std::string& string) const
-	{
-		return string.empty() ? std::string{} : "." + string;
-	};
-
 	std::string program_variable::storage_name() const
 	{
 		return name + (array_size ? "[" + std::to_string(array_size + 1) + "]" : (index != ~0 ? std::to_string(index) : std::string{}));
@@ -95,12 +100,12 @@ namespace rsx
 
 	std::string program_variable::to_string() const
 	{
-		return to_string_impl() + append_dot_if_not_empty(mask.to_string());
+		return mask.apply_to(to_string_impl());
 	}
 
 	std::string program_variable::to_string()
 	{
-		return to_string_impl() + append_dot_if_not_empty(mask.to_string());
+		return mask.symplify().apply_to(to_string_impl());
 	}
 
 	bool program_variable::is_null() const

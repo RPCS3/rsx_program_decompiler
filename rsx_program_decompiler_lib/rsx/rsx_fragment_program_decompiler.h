@@ -16,7 +16,7 @@ namespace rsx
 		};
 
 		template<int size> struct dest {};
-		template<int index, int size> struct src {};
+		template<int index, int size, bool apply_dst_mask = true> struct src {};
 		struct texture {};
 		struct addr {};
 		struct cond {};
@@ -71,8 +71,8 @@ namespace rsx
 		using MUL = instruction < opcode::MUL, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using ADD = instruction < opcode::ADD, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using MAD = instruction < opcode::MAD, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>>, arg<src<2, 4>> >;
-		using DP3 = instruction < opcode::DP3, H | C, dest<3>, arg<src<0, 3>>, arg<src<1, 3>> >;
-		using DP4 = instruction < opcode::DP4, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
+		using DP3 = instruction < opcode::DP3, H | C, dest<3>, arg<src<0, 3, false>>, arg<src<1, 3, false>> >;
+		using DP4 = instruction < opcode::DP4, H | C, dest<4>, arg<src<0, 4, false>>, arg<src<1, 4, false>> >;
 		using DST = instruction < opcode::DST, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using MIN = instruction < opcode::MIN, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using MAX = instruction < opcode::MAX, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
@@ -104,7 +104,7 @@ namespace rsx
 		using SIN = instruction < opcode::SIN, H | C, dest<4>, arg<src<0, 1> > >;
 		using PK2 = instruction < opcode::PK2, H | C, dest<4>, arg<src<0, 4> > >;
 		using UP2 = instruction < opcode::UP2, H | C, dest<4>, arg<src<0, 4> > >;
-		using POW = instruction < opcode::POW, H | C, dest<4>, arg<src<0, 4> > >;
+		using POW = instruction < opcode::POW, H | C, dest<4>, arg<src<0, 4> >, arg<src<1, 4> > >;
 		using PKB = instruction < opcode::PKB, H | C, dest<4>, arg<src<0, 4> > >;
 		using UPB = instruction < opcode::UPB, H | C, dest<4>, arg<src<0, 4> > >;
 		using PK16 = instruction < opcode::PK16, H | C, dest<4>, arg<src<0, 4> > >;
@@ -120,10 +120,10 @@ namespace rsx
 		using BEMLUM = instruction < opcode::BEMLUM, H | C, dest<4>, arg<src<0, 4>> >;
 		using REFL = instruction < opcode::REFL, H | C, dest<4>, arg<src<0, 4>> >;
 		using TIMESWTEX = instruction < opcode::TIMESWTEX, H | C, dest<4>, arg<src<0, 4>> >;
-		using DP2 = instruction < opcode::DP2, H | C, dest<2>, arg<src<0, 2>>, arg<src<1, 2>> >;
+		using DP2 = instruction < opcode::DP2, H | C, dest<2>, arg<src<0, 2, false>>, arg<src<1, 2, false>> >;
 		using NRM = instruction < opcode::NRM, H | C, dest<4>, arg<src<0, 4>> >;
 		using DIV = instruction < opcode::DIV, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
-		using DIVSQ = instruction < opcode::LOOP, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
+		using DIVSQ = instruction < opcode::DIVSQ, H | C, dest<4>, arg<src<0, 4>>, arg<src<1, 4>> >;
 		using LIF = instruction < opcode::LIF, H >;
 		using FENCT = instruction < opcode::FENCT, suffix_none >;
 		using FENCB = instruction < opcode::FENCB, suffix_none >;
@@ -148,6 +148,8 @@ namespace rsx
 			template<typename decompiler_impl>
 			__forceinline static void function(decompiler<decompiler_impl>& decompiler)
 			{
+				if (id != opcode::FENCT && id != opcode::FENCT)
+					throw std::runtime_error("unimplemented instruction: " + instructions_names[(std::size_t)id]);
 			}
 		};
 
@@ -188,8 +190,8 @@ namespace rsx
 			{
 			};
 
-			template<int index, int count>
-			struct expand_arg_t<src<index, count>>
+			template<int index, int count, bool apply_dst_mask>
+			struct expand_arg_t<src<index, count, apply_dst_mask>>
 			{
 				template<typename decompiler_impl>
 				__forceinline static program_variable impl(decompiler<decompiler_impl>& decompiler)
@@ -288,6 +290,20 @@ namespace rsx
 
 					variable.mask.add(swizzle);
 
+					if (apply_dst_mask)
+					{
+						variable.mask.add(decompiler.dst_mask<count>().to_string()).symplify();
+					}
+
+					if (count != 4)
+					{
+						std::string mask = variable.mask.to_string();
+						if (mask.empty())
+							mask = "xyzw";
+
+						variable.mask = mask_t{}.add(mask.substr(0, count));
+					}
+
 					if (need_declare)
 						variable = decompiler.info.vars.add(variable);
 
@@ -315,6 +331,7 @@ namespace rsx
 					result.name = "texture";
 					result.index = decompiler.ucode.dst.tex_num;
 					result.size = 1;
+					result.type = program_variable_type::texture;
 					return decompiler.info.vars.add(decompiler_impl::texture_variable(result));
 				}
 			};
@@ -332,6 +349,20 @@ namespace rsx
 		public:
 			std::unordered_set<std::string> functions_set;
 
+			template<int count>
+			mask_t dst_mask()
+			{
+				static const std::string mask = "xyzw";
+
+				std::string swizzle;
+				if (ucode.dst.mask_x) swizzle += mask[0];
+				if (ucode.dst.mask_y) swizzle += mask[1];
+				if (ucode.dst.mask_z) swizzle += mask[2];
+				if (ucode.dst.mask_w) swizzle += mask[3];
+
+				return mask_t{}.add(swizzle.substr(0, count));
+			}
+
 			template<u32 flags, int count>
 			program_variable dst()
 			{
@@ -342,16 +373,7 @@ namespace rsx
 				result.index = ucode.dst.dest_reg;
 				result.name = ucode.dst.fp16 ? "H" : "R";
 				result.size = count;
-
-				static const std::string mask = "xyzw";
-
-				std::string swizzle;
-				if (ucode.dst.mask_x) swizzle += mask[0];
-				if (ucode.dst.mask_y) swizzle += mask[1];
-				if (ucode.dst.mask_z) swizzle += mask[2];
-				if (ucode.dst.mask_w) swizzle += mask[3];
-
-				result.mask.add(swizzle);
+				result.mask = dst_mask<count>();
 
 				return info.vars.add(result);
 			}
@@ -369,6 +391,7 @@ namespace rsx
 				result.name = "CC";
 				result.index = ucode.src0.cond_mod_reg_index;
 				result.size = 4;
+				result.mask = dst_mask<4>();
 
 				return info.vars.add(result);
 			}
@@ -405,9 +428,9 @@ namespace rsx
 				set_code_line(decompiler_impl::set_dst<id, flags, count>(this, arg0, arg1, arg2));
 			}
 
-			void unknown_instruction(u32 opcode)
+			void unknown_instruction(opcode op)
 			{
-				throw std::runtime_error("unimplemented instruction '" + instructions_names[opcode] + "' (" + std::to_string(opcode) + ") #"
+				throw std::runtime_error("unimplemented instruction '" + instructions_names[(std::size_t)op] + "' (" + std::to_string((std::size_t)op) + ") #"
 					+ std::to_string(ucode_index));
 			}
 
@@ -449,38 +472,19 @@ namespace rsx
 
 					ucode = ucode_ptr[ucode_index].unpack();
 
-					const u32 opcode = ucode.dst.opcode | (ucode.src1.opcode_is_branch << 6);
+					const fragment_program::opcode opcode = fragment_program::opcode(ucode.dst.opcode | (ucode.src1.opcode_is_branch << 6));
 
-					//if (ucode_index == 20)
-					//	break;
-
-					if (opcode != 0)
+					if (opcode != fragment_program::opcode::NOP)
 					{
-						auto function = instructions[opcode];
+						auto function = instructions[(std::size_t)opcode];
 
-						try
+						if (function)
 						{
-							if (function)
-							{
-								function(*this);
-							}
-							else
-							{
-								unknown_instruction(opcode);
-							}
+							function(*this);
 						}
-						catch (...)
+						else
 						{
-							std::exception_ptr ex_p = std::current_exception();
-
-							try
-							{
-								std::rethrow_exception(ex_p);
-							}
-							catch (const std::exception& ex)
-							{
-								throw std::out_of_range(ex.what());
-							}
+							unknown_instruction(opcode);
 						}
 					}
 
