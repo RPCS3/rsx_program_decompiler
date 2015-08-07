@@ -129,7 +129,7 @@ namespace rsx
 		using FENCB = instruction < opcode::FENCB, suffix_none >;
 		using BRK = instruction < opcode::BRK, suffix_none, arg<addr> >;
 		using CAL = instruction < opcode::CAL, suffix_none, arg<addr> >;
-		using IFE = instruction < opcode::IFE, H >;
+		using IFE = instruction < opcode::IFE, suffix_none, arg<cond> >;
 		using LOOP = instruction < opcode::LOOP, H >;
 		using REP = instruction < opcode::REP, H >;
 		using RET = instruction < opcode::RET, H >;
@@ -148,8 +148,7 @@ namespace rsx
 			template<typename decompiler_impl>
 			__forceinline static void function(decompiler<decompiler_impl>& decompiler)
 			{
-				if (id != opcode::FENCT && id != opcode::FENCT)
-					throw std::runtime_error("unimplemented instruction: " + instructions_names[(std::size_t)id]);
+				decompiler.nodest_instruction<id, flags>(decompiler.arg<args_type>()...);
 			}
 		};
 
@@ -220,6 +219,8 @@ namespace rsx
 						swizzle_y = src.swizzle_y;
 						swizzle_z = src.swizzle_z;
 						swizzle_w = src.swizzle_w;
+						variable.is_abs = src.abs;
+						variable.is_neg = src.neg;
 					};
 
 					switch (index)
@@ -317,7 +318,7 @@ namespace rsx
 				template<typename decompiler_impl>
 				__forceinline static program_variable impl(decompiler<decompiler_impl>& decompiler)
 				{
-					return decompiler.execution_condition();
+					return decompiler.execution_condition_register();
 				}
 			};
 
@@ -384,7 +385,7 @@ namespace rsx
 				return expand_arg_t<T>::impl(*this);
 			}
 
-			program_variable update_condition()
+			program_variable update_condition_register()
 			{
 				program_variable result = {};
 
@@ -396,7 +397,7 @@ namespace rsx
 				return info.vars.add(result);
 			}
 
-			program_variable execution_condition()
+			program_variable execution_condition_register(bool exclusive_channels_only = false)
 			{
 				program_variable result = {};
 
@@ -407,25 +408,52 @@ namespace rsx
 				static const std::string mask = "xyzw";
 
 				std::string swizzle;
-				swizzle += mask[ucode.src0.cond_swizzle_x];
-				swizzle += mask[ucode.src0.cond_swizzle_y];
-				swizzle += mask[ucode.src0.cond_swizzle_z];
-				swizzle += mask[ucode.src0.cond_swizzle_w];
+
+				if (exclusive_channels_only)
+				{
+					swizzle += mask[ucode.src0.cond_swizzle_x];
+					if (ucode.src0.cond_swizzle_x != ucode.src0.cond_swizzle_y)
+						swizzle += mask[ucode.src0.cond_swizzle_y];
+
+					if (ucode.src0.cond_swizzle_z != ucode.src0.cond_swizzle_x && ucode.src0.cond_swizzle_z != ucode.src0.cond_swizzle_y)
+						swizzle += mask[ucode.src0.cond_swizzle_z];
+
+					if (ucode.src0.cond_swizzle_w != ucode.src0.cond_swizzle_x &&
+						ucode.src0.cond_swizzle_w != ucode.src0.cond_swizzle_y &&
+						ucode.src0.cond_swizzle_w != ucode.src0.cond_swizzle_z)
+						swizzle += mask[ucode.src0.cond_swizzle_w];
+				}
+				else
+				{
+					swizzle += mask[ucode.src0.cond_swizzle_x];
+					swizzle += mask[ucode.src0.cond_swizzle_y];
+					swizzle += mask[ucode.src0.cond_swizzle_z];
+					swizzle += mask[ucode.src0.cond_swizzle_w];
+				}
 
 				result.mask.add(swizzle);
 
 				return info.vars.add(result);
 			}
 
-			void set_code_line(const std::string &code_line)
+			void set_code_line(const std::string &code_line, int tab_before = 0, int tab_after = 0, bool to_end = true)
 			{
-				program_decompiler_core::builder.add_code_block(ucode_index, code_line);
+				program_decompiler_core::builder.add_code_block(ucode_index, code_line, tab_before, tab_after, to_end);
 			}
 
 			template<opcode id, u32 flags, int count>
 			void set_dst(const program_variable& arg0 = {}, const program_variable& arg1 = {}, const program_variable& arg2 = {})
 			{
 				set_code_line(decompiler_impl::set_dst<id, flags, count>(this, arg0, arg1, arg2));
+			}
+
+			template<opcode id, u32 flags>
+			void nodest_instruction(const program_variable& arg0 = {}, const program_variable& arg1 = {}, const program_variable& arg2 = {})
+			{
+				if (id != opcode::FENCT && id != opcode::FENCB)
+				{
+					decompiler_impl::nodest_instruction<id, flags>(this, arg0, arg1, arg2);
+				}
 			}
 
 			void unknown_instruction(opcode op)

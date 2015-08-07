@@ -210,6 +210,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="elf64.h" />
+    <ClInclude Include="endianness.h" />
     <ClInclude Include="fmt.h" />
     <ClInclude Include="rsx\rsx.h" />
     <ClInclude Include="rsx\rsx_fragment_program.h" />

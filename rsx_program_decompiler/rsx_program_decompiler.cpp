@@ -10,13 +10,15 @@
 template<typename DecompilerType>
 int process_ucode(const std::string& ipath, const std::string& opath)
 {
-	if (auto &ifile_stream = std::ifstream{ ipath, std::ios::binary })
+	if (auto &ifile_stream = std::ifstream{ ipath, std::ios::binary | std::ios::ate })
 	{
 		if (auto &ofile_stream = std::ofstream{ opath })
 		{
-			u32 buffer[512 * 4];
-			u32 size = ifile_stream.read((char*)buffer, sizeof(buffer)).gcount();
-			auto info = DecompilerType{ buffer, size }.decompile();
+			std::vector<char> buffer(ifile_stream.tellg());
+			ifile_stream.seekg(0);
+
+			ifile_stream.read(buffer.data(), buffer.size());
+			auto info = DecompilerType{ buffer.data(), (u32)buffer.size() }.decompile();
 			ofile_stream << info.text;
 
 			return 0;

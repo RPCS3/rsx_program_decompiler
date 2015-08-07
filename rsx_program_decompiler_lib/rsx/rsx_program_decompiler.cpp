@@ -1,5 +1,6 @@
 #include "rsx_program_decompiler.h"
 #include "fmt.h"
+#include <cctype>
 
 namespace rsx
 {
@@ -82,8 +83,44 @@ namespace rsx
 		if (mask.empty())
 			return expr;
 
-		return expr + "." + mask;
+		return append_brackets_if_needed(expr) + "." + mask;
 	}
+
+	std::string mask_t::append_brackets_if_needed(const std::string& expr)
+	{
+		int opened_brackets = 0;
+		bool has_outside_brackets_op = false;
+		bool is_first_visible_char = false;
+		for (auto c : expr)
+		{
+			switch (c)
+			{
+			case '(': ++opened_brackets; break;
+			case ')': --opened_brackets; break;
+
+			case '-':
+				if (is_first_visible_char)
+				{
+					break;
+				}
+
+			case '+': case '*': case '/':
+				if (opened_brackets == 0)
+				{
+					has_outside_brackets_op = true;
+				}
+				break;
+			}
+
+			if (!is_first_visible_char && std::isgraph(c))
+				is_first_visible_char = false;
+		}
+
+		if (has_outside_brackets_op)
+			return "(" + expr + ")";
+
+		return expr;
+	};
 
 	std::string program_variable::to_string_impl() const
 	{

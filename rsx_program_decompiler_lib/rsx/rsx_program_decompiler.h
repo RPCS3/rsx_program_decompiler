@@ -29,7 +29,8 @@ namespace rsx
 		std::string to_string() const;
 		std::string to_string();
 
-		std::string apply_to(const std::string& std) const;
+		std::string apply_to(const std::string& expr) const;
+		static std::string append_brackets_if_needed(const std::string& expr);
 	};
 
 

@@ -31,6 +31,8 @@
       <Filter>rsx</Filter>
     </ClInclude>
     <ClInclude Include="fmt.h" />
+    <ClInclude Include="elf64.h" />
+    <ClInclude Include="endianness.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="rsx\rsx_program_decompiler.cpp">
