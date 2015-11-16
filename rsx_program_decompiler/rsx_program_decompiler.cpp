@@ -1,3 +1,4 @@
+/*
 #include <rsx/rsx.h>
 #include <unordered_map>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include "CgBinaryProgram.h"
 #include "elf64.h"
 #include <cctype>
+
 
 template<typename DecompilerType>
 int process_ucode(const std::string& ipath, const std::string& opath)
@@ -163,10 +165,17 @@ void help()
 		std::cout << profile.first << " ";
 	}
 	std::cout << std::endl;
+}*/
+
+namespace vs
+{
+	int main();
 }
 
 int main(int argc, char** argv)
 {
+	return vs::main();
+	/*
 	if (argc != 4)
 	{
 		help();
@@ -190,5 +199,5 @@ int main(int argc, char** argv)
 		std::cerr << ex.what() << std::endl;
 		return -5;
 	}
+	*/
 }
-

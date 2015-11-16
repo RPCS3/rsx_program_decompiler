@@ -18,37 +18,34 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="rsx_program_decompiler.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}</ProjectGuid>
+    <ProjectGuid>{97E17077-A21F-45EF-9C3A-73A0BC092D7E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>rsx_program_decompiler_gui</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
+    <RootNamespace>shader_code</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -74,108 +71,99 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
-    <OutDir>$(SolutionDir)bin\</OutDir>
-    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)bin\</OutDir>
-    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)bin\</OutDir>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
-    <OutDir>$(SolutionDir)bin\</OutDir>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnablePREfast>false</EnablePREfast>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnablePREfast>false</EnablePREfast>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnablePREfast>false</EnablePREfast>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnablePREfast>false</EnablePREfast>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="builder.cpp" />
+    <ClCompile Include="clike_language.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="builder.h" />
+    <ClInclude Include="clike_builder.h" />
+    <ClInclude Include="clike_language.h" />
+    <ClInclude Include="glsl_builder.h" />
+    <ClInclude Include="glsl_language.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

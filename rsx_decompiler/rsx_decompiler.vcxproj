@@ -27,10 +27,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{f7aad20d-bcfa-4b17-a178-bd8606b4e1fe}</ProjectGuid>
+    <ProjectGuid>{7d73447b-3d2d-4dfe-bf62-57e644c1d09f}</ProjectGuid>
     <Keyword>StaticLibrary</Keyword>
-    <ProjectName>rsx_program_decompiler_lib</ProjectName>
-    <RootNamespace>rsx_program_decompiler</RootNamespace>
+    <ProjectName>rsx_decompiler</ProjectName>
+    <RootNamespace>rsx_decompiler</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
@@ -100,58 +100,64 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
-    <TargetName>rsx_program_decompiler</TargetName>
+    <IncludePath>$(SolutionDir)shader_code\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)lib\$(Platform)-$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -160,10 +166,13 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -172,10 +181,13 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -184,10 +196,13 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -196,10 +211,13 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -208,24 +226,30 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
+    <Lib>
+      <AdditionalDependencies>shader_code.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="elf64.h" />
-    <ClInclude Include="endianness.h" />
-    <ClInclude Include="fmt.h" />
-    <ClInclude Include="rsx\rsx.h" />
-    <ClInclude Include="rsx\rsx_fragment_program.h" />
-    <ClInclude Include="rsx\rsx_fragment_program_decompiler.h" />
-    <ClInclude Include="rsx\rsx_glsl_fragment_program_decompiler.h" />
-    <ClInclude Include="rsx\rsx_glsl_vertex_program_decompiler.h" />
-    <ClInclude Include="rsx\rsx_program_decompiler.h" />
-    <ClInclude Include="rsx\rsx_vertex_program.h" />
-    <ClInclude Include="rsx\rsx_vertex_program_decompiler.h" />
+    <ClInclude Include="cache.h" />
+    <ClInclude Include="rsx_decompiler.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fmt.cpp" />
-    <ClCompile Include="rsx\rsx_program_decompiler.cpp" />
-    <ClCompile Include="rsx\rsx_vertex_program_decompiler.cpp" />
+    <ClCompile Include="rsx_decompiler.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="rsx_fp_ucode.cpp" />
+    <ClInclude Include="rsx_fp_ucode.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
