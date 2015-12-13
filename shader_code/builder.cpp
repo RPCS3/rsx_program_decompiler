@@ -18,13 +18,8 @@ namespace shader_code
 		return to_string();
 	}
 
-	builder::writer_t::writer_to builder::writer_t::operator()(std::size_t position)
-	{
-		return{ &code[position] };
-	}
-
 	void builder::writer_t::next()
 	{
-		++position;
+		fill_to(++position);
 	}
 }

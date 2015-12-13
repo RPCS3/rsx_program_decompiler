@@ -131,10 +131,11 @@ namespace shader_code
 			bool is_single;
 			int base_count = Count;
 
-			expression_helper_t(const std::string& text, bool is_single = true)
+			expression_helper_t(const std::string& text, bool is_single = true, int base_count = Count)
 				: expression_base_t{ text }
 				, is_single(is_single)
-				, mask{ std::string("xyzw").substr(0, Count) }
+				, mask{ std::string("xyzw").substr(0, base_count) }
+				, base_count(base_count)
 			{
 			}
 
@@ -158,6 +159,7 @@ namespace shader_code
 				text = rhs.text;
 				mask = rhs.mask;
 				is_single = rhs.is_single;
+				base_count = rhs.base_count;
 			}
 
 			template<typename... Channels>

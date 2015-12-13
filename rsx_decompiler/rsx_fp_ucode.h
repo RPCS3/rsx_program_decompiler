@@ -70,6 +70,7 @@ namespace rsx
 			LIF = 0x3C, // Final part of LIT
 			FENCT = 0x3D, // Fence T?
 			FENCB = 0x3E, // Fence B?
+
 			BRK = 0x40, // Break
 			CAL = 0x41, // Subroutine call
 			IFE = 0x42, // If
@@ -77,6 +78,15 @@ namespace rsx
 			REP = 0x44, // Repeat
 			RET = 0x45  // Return
 		};
+
+		inline opcode operator |(opcode lhs, u32 rhs)
+		{
+			return opcode(u32(lhs) | rhs);
+		}
+		inline opcode operator |(u32 lhs, opcode rhs)
+		{
+			return opcode(lhs | u32(rhs));
+		}
 
 		enum class src_reg_type_t : u32
 		{

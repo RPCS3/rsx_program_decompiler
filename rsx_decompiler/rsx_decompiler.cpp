@@ -133,7 +133,19 @@ namespace rsx
 					return result;
 				}
 
-				expression_from<float_point_t<4>> src(context_t& context, int index) const
+				expression_from<float_point_t<4>> swizzle_as_dst(expression_from<float_point_t<4>> arg) const
+				{
+					std::string arg_mask;
+
+					for (char channel : destination_swizzle())
+					{
+						arg_mask += arg.mask[channel_to_index.at(channel)];
+					}
+
+					return expression_from<float_point_t<4>>(arg.text, arg_mask, arg.is_single, arg.base_count);
+				}
+
+				expression_from<float_point_t<4>> src(context_t& context, int index, bool is_swizzle_as_dst = false) const
 				{
 					src_t src;
 
@@ -160,6 +172,13 @@ namespace rsx
 
 					expression_from<float_point_t<4>> result = get_variable(src);
 
+					result.assign(result.swizzle(src.swizzle_x, src.swizzle_y, src.swizzle_z, src.swizzle_w));
+
+					if (is_swizzle_as_dst)
+					{
+						result.assign(swizzle_as_dst(result));
+					}
+
 					if (src.abs)
 					{
 						result.assign(abs(result));
@@ -170,7 +189,7 @@ namespace rsx
 						result.assign(-result);
 					}
 
-					return result.swizzle(src.swizzle_x, src.swizzle_y, src.swizzle_z, src.swizzle_w);
+					return result;
 				}
 
 
@@ -209,31 +228,14 @@ namespace rsx
 			context_t context;
 			writer_t writer;
 
-			expression_from<float_point_t<4>> src(int index)
+			expression_from<float_point_t<4>> src(int index, bool is_swizzle_as_dst = false)
 			{
-				return instruction.src(context, index);
-			}
-
-			expression_from<float_point_t<4>> swizzle_as_dst(expression_from<float_point_t<4>> arg) const
-			{
-				std::string arg_mask;
-
-				for (char channel : instruction.destination_swizzle())
-				{
-					arg_mask += arg.mask[channel_to_index.at(channel)];
-				}
-
-				return expression_from<float_point_t<4>>(arg.text, arg_mask, arg.is_single);
+				return instruction.src(context, index, is_swizzle_as_dst);
 			}
 
 			expression_from<float_point_t<4>> src_swizzled_as_dst(int index)
 			{
-				if (instruction.data.dst.set_cond || !instruction.data.dst.no_dest)
-				{
-					return swizzle_as_dst(src(index));
-				}
-
-				return src(index);
+				return src(index, instruction.data.dst.set_cond || !instruction.data.dst.no_dest);
 			}
 
 			expression_from<boolean_t<4>> modify_condition()
@@ -271,7 +273,7 @@ namespace rsx
 			};
 
 			template<typename Type>
-			Type apply_dst_flags(Type arg)
+			Type apply_instruction_modifiers(Type arg)
 			{
 				using float_t = expression_from<float_point_t<1>>;
 
@@ -289,32 +291,98 @@ namespace rsx
 					throw std::runtime_error("fragment program decompiler: unimplemented scale (" + std::to_string(instruction.data.src1.scale) + "). ");
 				}
 
-				switch (instruction.data.dst.prec)
-				{
-				case 0: //fp32, do nothing
-					break;
-
-				case 1: //fp16
-					arg.assign(clamp(arg, -65536.0f, 65536.0f));
-					break;
-
-				case 2: //fixed point 12
-					arg.assign(clamp(arg, -1.0f, 1.0f));
-					break;
-
-				default:
-					throw std::runtime_error("fragment program decompiler: unimplemented precision.");
-				}
-
 				if (instruction.data.dst.saturate)
 				{
 					arg.assign(clamp(arg, 0.0f, 1.0f));
+				}
+				else
+				{
+					switch (instruction.data.dst.prec)
+					{
+					case 0: //fp32
+						if (!instruction.data.dst.fp16)
+						{
+							break;
+						}
+						//result is fp16, clamp to fp16
+
+					case 1: //fp16
+						arg.assign(clamp(arg, -65536.0f, 65536.0f));
+						break;
+
+					case 2: //fixed point 12
+						arg.assign(clamp(arg, -1.0f, 1.0f));
+						break;
+
+					default:
+						throw std::runtime_error("fragment program decompiler: unimplemented precision.");
+					}
 				}
 
 				return arg;
 			}
 
-			writer_t set_dst(const expression_from<float_point_t<4>>& arg, set_dst_flags flags = none)
+			enum class compare_function
+			{
+				less,
+				greater,
+				equal,
+				less_equal,
+				greater_equal,
+				not_equal
+			};
+
+			static expression_from<boolean_t<4>> single_compare_function(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
+			{
+				std::string operator_string;
+
+				switch (function)
+				{
+				case compare_function::less: operator_string = "<"; break;
+				case compare_function::greater: operator_string = ">"; break;
+				case compare_function::equal: operator_string = "=="; break;
+				case compare_function::less_equal: operator_string = "<="; break;
+				case compare_function::greater_equal: operator_string = ">="; break;
+				case compare_function::not_equal: operator_string = "!="; break;
+
+				default:
+					throw;
+				}
+
+				return a.to_string() + " " + operator_string + " " + b.to_string();
+			}
+
+			static expression_from<boolean_t<4>> vector_compare_function(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
+			{
+				switch (function)
+				{
+				case compare_function::less: return less(a, b);
+				case compare_function::greater: return greater(a, b);
+				case compare_function::equal: return equal(a, b);
+				case compare_function::less_equal: return less_equal(a, b);
+				case compare_function::greater_equal: return greater_equal(a, b);
+				case compare_function::not_equal: return not_equal(a, b);
+				}
+
+				throw;
+			}
+
+			static expression_from<boolean_t<4>> compare(compare_function function, int channel_count, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
+			{
+				if (channel_count == 1)
+				{
+					return  single_compare_function(function, a, b);
+				}
+
+				return vector_compare_function(function, a, b);
+			}
+
+			expression_from<boolean_t<4>> compare(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
+			{
+				return compare(function, instruction.destination_swizzle().size(), a, b);
+			}
+
+			writer_t set_dst(const expression_from<float_point_t<4>>& arg, u32 flags = none)
 			{
 				writer_t result;
 
@@ -354,41 +422,61 @@ namespace rsx
 
 					static const expression_from<float_point_t<1>> zero(0.0f);
 
-					auto set_channel = [&](int index)
+					auto set_channel = [&](int dest_swizzle, int src_swizzle)
 					{
-						auto src = apply_dst_flags(arg.swizzle(index));
+						auto src = expression_from<float_point_t<1>>{ arg.text, arg.mask, arg.is_single, arg.base_count };
+
+						if ((flags & disable_swizzle_as_dst) != 0 && dest.mask.size() == 1)
+						{
+							src.assign(src.without_scope());
+						}
+						else
+						{
+							src.assign(src.swizzle(src_swizzle));
+						}
+
+						src = apply_instruction_modifiers(src);
 
 						if (instruction.data.dst.set_cond)
 						{
 							if (instruction.data.dst.no_dest)
 							{
-								result += if_(cond.swizzle(index).call_operator<boolean_t<1>>(operation, zero),
-									modify_cond.swizzle(index) = boolean_t<1>::ctor(src));
+								result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero),
+									modify_cond.swizzle(src_swizzle) = boolean_t<1>::ctor(src));
 							}
 							else
 							{
-								result += if_(cond.swizzle(index).call_operator(operation, zero),
-									modify_cond.swizzle(index) = boolean_t<1>::ctor(dest.swizzle(index) = src));
+								result += if_(cond.swizzle(src_swizzle).call_operator(operation, zero),
+									modify_cond.swizzle(src_swizzle) = boolean_t<1>::ctor(dest.swizzle(dest_swizzle) = src));
 							}
 						}
 						else
 						{
-							result += if_(cond.swizzle(index).call_operator(operation, zero), dest.swizzle(index) = src);
+							result += if_(cond.swizzle(src_swizzle).call_operator(operation, zero), dest.swizzle(dest_swizzle) = src);
 						}
 					};
 
 					if (!instruction.data.dst.set_cond && instruction.data.dst.no_dest)
 					{
 						//condition must be already handled in instruction semantic (IFE, LOOP, etc)
-						result += comment("extra condition test skipped");
+						result += comment("WARNING: extra condition test skipped");
 						result += arg;
 					}
 					else
 					{
-						if (instruction.data.dst.mask_x) set_channel(0);
-						if (instruction.data.dst.mask_y) set_channel(1);
-						if (instruction.data.dst.mask_z) set_channel(2);
-						if (instruction.data.dst.mask_w) set_channel(3);
+						if (flags & disable_swizzle_as_dst)
+						{
+							for (int i = 0; i < dest.mask.size(); ++i)
+								set_channel(i, i);
+						}
+						else
+						{
+							int dest_swizzle = 0;
+							if (instruction.data.dst.mask_x) set_channel(dest_swizzle++, 0);
+							if (instruction.data.dst.mask_y) set_channel(dest_swizzle++, 1);
+							if (instruction.data.dst.mask_z) set_channel(dest_swizzle++, 2);
+							if (instruction.data.dst.mask_w) set_channel(dest_swizzle, 3);
+						}
 					}
 				}
 				else
@@ -399,10 +487,10 @@ namespace rsx
 					{
 						if ((flags & disable_swizzle_as_dst) == 0)
 						{
-							src.assign(swizzle_as_dst(arg));
+							src.assign(instruction.swizzle_as_dst(arg));
 						}
 
-						src.assign(apply_dst_flags(src).without_scope());
+						src.assign(apply_instruction_modifiers(src).without_scope());
 
 						if (!instruction.data.dst.no_dest)
 						{
@@ -421,6 +509,34 @@ namespace rsx
 				return result;
 			}
 
+			writer_t set_dst(const expression_from<float_point_t<1>>& arg, u32 flags = none)
+			{
+				if (instruction.destination_swizzle().size() != 1)
+				{
+					return set_dst(float_point_t<4>::ctor(arg), flags);
+				}
+
+				return set_dst(expression_from<float_point_t<4>>{ arg.to_string() }, flags | disable_swizzle_as_dst);
+			}
+
+			writer_t set_dst(const expression_from<boolean_t<4>>& arg, u32 flags = none)
+			{
+				std::string arg_string;
+
+				switch (instruction.destination_swizzle().size())
+				{
+				case 1: arg_string = float_point_t<1>::ctor(expression_from<boolean_t<1>>{ arg.to_string() }).to_string(); break;
+				case 2: arg_string = float_point_t<2>::ctor(expression_from<boolean_t<2>>{ arg.to_string() }).to_string(); break;
+				case 3: arg_string = float_point_t<3>::ctor(expression_from<boolean_t<3>>{ arg.to_string() }).to_string(); break;
+				case 4: arg_string = float_point_t<4>::ctor(expression_from<boolean_t<4>>{ arg.to_string() }).to_string(); break;
+
+				default:
+					throw;
+				}
+
+				return set_dst(expression_from<float_point_t<4>>{ arg_string, std::string("xyzw"), true, 4 }, flags);
+			}
+
 			writer_t comment(const std::string& lines)
 			{
 				writer_t result;
@@ -430,22 +546,27 @@ namespace rsx
 				return result;
 			}
 
+			writer_t warning(const std::string& lines)
+			{
+				return comment("WARNING: " + lines);
+			}
+
 			writer_t unimplemented(const std::string& lines)
 			{
-				return comment(lines);
+				return comment("TODO: " + lines);
 			}
 
 			expression_base_t decode_instruction()
 			{
-				switch (instruction.data.dst.opcode)
+				switch (instruction.data.dst.opcode | (instruction.data.src1.opcode_is_branch << 6))
 				{
 				case opcode::NOP: return comment("nop");
 				case opcode::MOV: return set_dst(src(0));
 				case opcode::MUL: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1), disable_swizzle_as_dst);
 				case opcode::ADD: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(1), disable_swizzle_as_dst);
 				case opcode::MAD: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2), disable_swizzle_as_dst);
-				case opcode::DP3: return set_dst(float_point_t<4>::ctor(dot(src(0).xyz(), src(1).xyz())));
-				case opcode::DP4: return set_dst(float_point_t<4>::ctor(dot(src(0), src(1))));
+				case opcode::DP3: return set_dst(dot(src(0).xyz(), src(1).xyz()));
+				case opcode::DP4: return set_dst(dot(src(0), src(1)));
 				case opcode::DST:
 				{
 					auto src_0 = src(0);
@@ -455,12 +576,12 @@ namespace rsx
 				}
 				case opcode::MIN: return set_dst(min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
 				case opcode::MAX: return set_dst(max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::SLT: return set_dst(float_point_t<4>::ctor(less(src(0), src(1))));
-				case opcode::SGE: return set_dst(float_point_t<4>::ctor(greater_equal(src(0), src(1))));
-				case opcode::SLE: return set_dst(float_point_t<4>::ctor(less_equal(src(0), src(1))));
-				case opcode::SGT: return set_dst(float_point_t<4>::ctor(greater(src(0), src(1))));
-				case opcode::SNE: return set_dst(float_point_t<4>::ctor(not_equal(src(0), src(1))));
-				case opcode::SEQ: return set_dst(float_point_t<4>::ctor(equal(src(0), src(1))));
+				case opcode::SLT: return set_dst(compare(compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case opcode::SGE: return set_dst(compare(compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case opcode::SLE: return set_dst(compare(compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case opcode::SGT: return set_dst(compare(compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case opcode::SNE: return set_dst(compare(compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case opcode::SEQ: return set_dst(compare(compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
 				case opcode::FRC: return set_dst(fract(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::FLR: return set_dst(floor(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::KIL: return conditional(expression_from<void_t>("discard"));
@@ -477,8 +598,8 @@ namespace rsx
 				case opcode::LG2: return set_dst(log2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::LIT: return unimplemented("LIT");
 				case opcode::LRP: return unimplemented("LRP");
-				case opcode::STR: return set_dst(float_point_t<4>::ctor(1.0f));
-				case opcode::SFL: return set_dst(float_point_t<4>::ctor(0.0f));
+				case opcode::STR: return set_dst(1.0f);
+				case opcode::SFL: return set_dst(0.0f);
 				case opcode::COS: return set_dst(cos(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::SIN: return set_dst(sin(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::PK2: return unimplemented("PK2");
@@ -505,7 +626,7 @@ namespace rsx
 				case opcode::BEMLUM: return unimplemented("BEMLUM");
 				case opcode::REFL: return unimplemented("REFL");
 				case opcode::TIMESWTEX: return unimplemented("TIMESWTEX");
-				case opcode::DP2: return set_dst(float_point_t<4>::ctor(dot(src(0).xy(), src(1).xy())));
+				case opcode::DP2: return set_dst(dot(src(0).xy(), src(1).xy()));
 				case opcode::NRM: return set_dst(normalize(src(0).xyz()).xyzx());
 				case opcode::DIV: return set_dst(src_swizzled_as_dst(0) / src_swizzled_as_dst(1), disable_swizzle_as_dst);
 				case opcode::DIVSQ: return set_dst(src_swizzled_as_dst(0) / sqrt(src_swizzled_as_dst(1)), disable_swizzle_as_dst);
@@ -514,7 +635,13 @@ namespace rsx
 				case opcode::FENCB: return comment("fencb");
 				case opcode::BRK: return conditional(expression_from<void_t>("break"));
 				case opcode::CAL: return unimplemented("CAL");
-				case opcode::IFE: return unimplemented("IFE");
+				case opcode::IFE:
+					if (instruction.data.src2.end_offset != instruction.data.src1.else_offset)
+						writer.before(instruction.data.src1.else_offset >> 2, "}\nelse\n{\n");
+					writer.after(instruction.data.src2.end_offset >> 2, "}\n");
+
+					return writer_t{ "if (" + all(execution_condition()).to_string() + ")\n{\n" };
+
 				case opcode::LOOP: return unimplemented("LOOP");
 				case opcode::REP: return unimplemented("REP");
 				case opcode::RET: return conditional(expression_from<void_t>("return"));
@@ -528,7 +655,7 @@ namespace rsx
 				context.offset = 0;
 				context.is_next_is_constant = false;
 
-				for (std::size_t index = offset; index < 512; ++index, writer.next(), context.offset += sizeof(instruction_t))
+				for (std::size_t index = offset; true; ++index, writer.next(), context.offset += sizeof(instruction_t))
 				{
 					if (context.is_next_is_constant)
 					{
@@ -536,7 +663,7 @@ namespace rsx
 						continue;
 					}
 
-					instruction = (instructions + index)->unpack();
+					instruction = instructions[index].unpack();
 
 					writer += decode_instruction();
 

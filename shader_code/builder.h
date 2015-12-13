@@ -25,15 +25,26 @@ namespace shader_code
 
 		struct writer_t
 		{
-			std::unordered_map<std::size_t, std::string> code;
+			std::vector<std::string> code;
 			std::size_t position = 0;
 
-			struct writer_to
+			writer_t()
 			{
-				std::string *code;
-			};
+				fill_to(position);
+			}
 
-			writer_to operator()(std::size_t position);
+			writer_t(const std::string &string) : writer_t()
+			{
+				lines(string);
+			}
+
+			void fill_to(std::size_t position)
+			{
+				if (code.size() <= position)
+				{
+					code.resize(position + 1);
+				}
+			}
 
 			template<typename... T>
 			void lines(const T&... exprs)
@@ -46,6 +57,18 @@ namespace shader_code
 
 			void lines(const std::string& string)
 			{
+				code[position] += string;
+			}
+
+			void before(std::size_t position, const std::string& string)
+			{
+				fill_to(position);
+				code[position] = string + code[position];
+			}
+
+			void after(std::size_t position, const std::string& string)
+			{
+				fill_to(position);
 				code[position] += string;
 			}
 
@@ -72,9 +95,9 @@ namespace shader_code
 			{
 				std::string result;
 
-				for (auto entry : code)
+				for (const std::string &entry : code)
 				{
-					result += entry.second;
+					result += entry;
 				}
 
 				return result;
