@@ -202,12 +202,6 @@ namespace shader_code
 		}
 
 		template<int Count>
-		static expression_from<float_point_t<Count>> normalize(const expression_t<type_class_t::type_float, Count>& arg)
-		{
-			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_normalize>>::invoke(arg);
-		}
-
-		template<int Count>
 		static expression_from<boolean_t<1>> any(const expression_t<type_class_t::type_bool, Count>& arg)
 		{
 			return function_t<boolean_t<1>, language::function_name_t<function_class_t::function_any>>::invoke(arg);
@@ -293,10 +287,10 @@ namespace shader_code
 		{
 			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_cos>>::invoke(arg);
 		}
-		template<type_class_t Type, int Count>
-		static expression_from<expression_t<Type, Count>> clamp(const expression_t<Type, Count>& a, const expression_t<Type, 1>& b, const expression_t<Type, 1>& c)
+		template<int Count>
+		static expression_from<float_point_t<Count>> clamp(const expression_t<type_class_t::type_float, Count>& a, const expression_t<type_class_t::type_float, 1>& b, const expression_t<type_class_t::type_float, 1>& c)
 		{
-			return function_t<type_t<Type, Count>, language::function_name_t<function_class_t::function_clamp>>::invoke(a, b, c);
+			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_clamp>>::invoke(a, b, c);
 		}
 		template<int Count>
 		static expression_from<float_point_t<Count>> sqrt(const expression_t<type_class_t::type_float, Count>& arg)

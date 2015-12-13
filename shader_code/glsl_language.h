@@ -140,9 +140,21 @@ namespace shader_code
 		};
 
 		template<>
-		struct function_name_t<clike_language::function_class_t::function_normalize>
+		struct function_name_t<clike_language::function_class_t::function_texture_grad>
 		{
-			static constexpr char *name = "normalize";
+			static constexpr char *name = "textureGrad";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_texture_bias>
+		{
+			static constexpr char *name = "textureBias";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_texture_lod>
+		{
+			static constexpr char *name = "textureLod";
 		};
 
 		template<>

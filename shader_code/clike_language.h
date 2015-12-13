@@ -207,6 +207,11 @@ namespace shader_code
 				return{ to_string() };
 			}
 
+			expression_t<Type, Count> without_scope() const
+			{
+				return{ text, mask, true, base_count };
+			}
+
 		//protected:
 			template<typename RetType = type, typename ArgType>
 			expression_t<RetType::type, RetType::count> call_operator(const std::string& opname, const ArgType& rhs) const

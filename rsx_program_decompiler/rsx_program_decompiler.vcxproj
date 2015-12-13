@@ -75,7 +75,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
@@ -88,7 +88,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -98,7 +98,7 @@
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -108,7 +108,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>

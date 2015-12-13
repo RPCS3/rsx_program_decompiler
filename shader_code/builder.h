@@ -23,7 +23,7 @@ namespace shader_code
 			virtual std::string finalize(bool put_end) const;
 		};
 
-		struct writer_t : expression_base_t
+		struct writer_t
 		{
 			std::unordered_map<std::size_t, std::string> code;
 			std::size_t position = 0;
@@ -40,13 +40,18 @@ namespace shader_code
 			{
 				for (auto& expr : { exprs.finalize(true)... })
 				{
-					code[position] += expr + "\n";
+					code[position] += !expr.empty() && expr.back() != '\n' ? expr + "\n" : expr;
 				}
 			}
 
 			void lines(const std::string& string)
 			{
-				code[position] += string + "\n";
+				code[position] += string;
+			}
+
+			void lines(const writer_t& writer)
+			{
+				lines(writer.build());
 			}
 
 			void next();
@@ -58,20 +63,26 @@ namespace shader_code
 				return *this;
 			}
 
-			std::string build()
+			operator const expression_base_t() const
 			{
-				for (auto entry : code)
-				{
-					text += entry.second;
-				}
-
-				code.clear();
-				return text;
+				return{ build() };
 			}
 
-			std::string to_string() const override
+			std::string build() const
 			{
-				return const_cast<writer_t*>(this)->build();
+				std::string result;
+
+				for (auto entry : code)
+				{
+					result += entry.second;
+				}
+
+				return result;
+			}
+
+			void clear()
+			{
+				code.clear();
 			}
 		};
 	};

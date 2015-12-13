@@ -1,6 +1,8 @@
 ﻿#pragma once
+#include "rsx_fp_ucode.h"
 #include <vector>
 
+/*
 struct rsx_vertex_shader
 {
 	std::vector<unsigned int> data;
@@ -57,15 +59,7 @@ struct rsx_fragment_shader
 	}
 };
 
-struct decompiled_rsx_shader
-{
-	std::vector<std::size_t> constant_offsets;
-	std::vector<std::string> uniforms;
-	int input_attributes;
-	int output_attributes;
 
-	std::string code;
-};
 
 struct finalized_rsx_vertex_shader
 {
@@ -114,4 +108,51 @@ struct finalized_rsx_fragment_shader
 			control == rhs.control &&
 			code == rhs.code;
 	}
-};
+};*/
+
+namespace rsx
+{
+	enum class sampler_type
+	{
+		sampler_1d,
+		sampler_2d,
+		sampler_3d
+		//TODO
+	};
+
+	enum class register_type
+	{
+		half_float_point,
+		single_float_point,
+		integer
+	};
+
+	struct texture_info
+	{
+		int id;
+		sampler_type type;
+	};
+
+	struct register_info
+	{
+		int id;
+		register_type type;
+	};
+
+	struct decompiled_program
+	{
+		std::vector<std::size_t> constant_offsets;
+		std::vector<std::string> uniforms;
+		std::vector<texture_info> textures;
+		std::vector<register_info> temporary_registers;
+		unsigned int input_attributes;
+		unsigned int output_attributes;
+
+		std::string code;
+	};
+
+	namespace fragment_program
+	{
+		decompiled_program decompile(std::size_t offset, ucode_instr* instructions);
+	}
+}

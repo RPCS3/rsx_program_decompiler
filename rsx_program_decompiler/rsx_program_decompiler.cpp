@@ -1,13 +1,14 @@
-/*
-#include <rsx/rsx.h>
+#include <cctype>
+#include <cassert>
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <functional>
-#include "CgBinaryProgram.h"
-#include "elf64.h"
-#include <cctype>
 
+#include <rsx_decompiler.h>
+
+#include "elf64.h"
+#include "CgBinaryProgram.h"
 
 template<typename DecompilerType>
 int process_ucode(const std::string& ipath, const std::string& opath)
@@ -149,11 +150,11 @@ int extract_objects_from_elf(const std::string& elf_path, const std::string& out
 
 const std::unordered_map<std::string, std::function<int(const std::string&, const std::string&)>> g_profiles =
 {
-	{ "fp_glsl", process_ucode<rsx::fragment_program::glsl_decompiler> },
-	//{ "vp_glsl", process_ucode<rsx::vertex_program::glsl_decompiler> },
-	{ "cgbin_extract_ucode", extract_ucode },
-	{ "elf_extract_fp_cgbin", [](const std::string& inp, const std::string& outp) { return extract_objects_from_elf(inp, outp, { "_binary_fp_shader_fpo_start", "_binary_fp_shader_fpo_end" }); } },
-	{ "elf_extract_vp_cgbin", [](const std::string& inp, const std::string& outp) { return extract_objects_from_elf(inp, outp, { "_binary_vp_shader_vpo_start", "_binary_vp_shader_vpo_end" }); } }
+	//{ "fp_glsl", process_ucode<rsx::fragment_program::glsl_decompiler> },
+	////{ "vp_glsl", process_ucode<rsx::vertex_program::glsl_decompiler> },
+	//{ "cgbin_extract_ucode", extract_ucode },
+	//{ "elf_extract_fp_cgbin", [](const std::string& inp, const std::string& outp) { return extract_objects_from_elf(inp, outp, { "_binary_fp_shader_fpo_start", "_binary_fp_shader_fpo_end" }); } },
+	//{ "elf_extract_vp_cgbin", [](const std::string& inp, const std::string& outp) { return extract_objects_from_elf(inp, outp, { "_binary_vp_shader_vpo_start", "_binary_vp_shader_vpo_end" }); } }
 };
 
 void help()
@@ -165,16 +166,39 @@ void help()
 		std::cout << profile.first << " ";
 	}
 	std::cout << std::endl;
-}*/
+}
 
-namespace vs
+std::vector<char> load_file(const std::string& path)
 {
-	int main();
+	if (auto &file_stream = std::ifstream{ path, std::ios::binary | std::ios::ate })
+	{
+		std::vector<char> result(file_stream.tellg());
+		file_stream.seekg(0);
+		file_stream.read(result.data(), result.size());
+
+		return result;
+	}
+
+	throw;
+}
+
+void print_info(const rsx::decompiled_program& program)
+{
+	std::cout << "[CODE]" << std::endl;
+	std::cout << program.code;
 }
 
 int main(int argc, char** argv)
 {
-	return vs::main();
+	extract_objects_from_elf(argv[1], "tmp.fp.cg", { "_binary_fp_shader_fpo_start", "_binary_fp_shader_fpo_end" });
+	extract_ucode("tmp.fp.cg", "tmp.fp.ucode");
+
+	std::vector<char> file = load_file("tmp.fp.ucode");
+
+	rsx::fragment_program::ucode_instr *instructions = (rsx::fragment_program::ucode_instr *)file.data();
+	rsx::decompiled_program program = rsx::fragment_program::decompile(0, instructions);
+
+	print_info(program);
 	/*
 	if (argc != 4)
 	{

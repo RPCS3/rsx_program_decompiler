@@ -234,7 +234,6 @@
     <ClInclude Include="cache.h" />
     <ClInclude Include="rsx_decompiler.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="rsx_decompiler.cpp" />
