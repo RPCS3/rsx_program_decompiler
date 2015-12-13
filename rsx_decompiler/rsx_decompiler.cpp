@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <iostream>
+#include <map>
 
 namespace rsx
 {
@@ -73,6 +74,7 @@ namespace rsx
 		}
 	};
 }
+
 
 #include "glsl_language.h"
 #include "rsx_fp_ucode.h"
@@ -364,7 +366,7 @@ namespace rsx
 					return custom_compare(execution_condition_function(), 1, cond.x(), expression_from<float_point_t<1>>(0.0f));
 				}
 
-				auto result = custom_compare(execution_condition_function(), 4, cond, expression_from<float_point_t<4>>(float_point_t<4>::ctor(0.0f)));
+				auto result = custom_compare(execution_condition_function(), 4, cond, float_point_t<4>::ctor(0.0f));
 
 				switch (operation)
 				{
@@ -492,42 +494,6 @@ namespace rsx
 							operation += "=";
 					}
 
-					static const expression_from<float_point_t<1>> zero(0.0f);
-
-					auto set_channel = [&](int dest_swizzle, int src_swizzle)
-					{
-						auto src = expression_from<float_point_t<1>>{ arg.text, arg.mask, arg.is_single, arg.base_count };
-
-						if ((flags & disable_swizzle_as_dst) != 0 && dest.mask.size() == 1)
-						{
-							src.assign(src.without_scope());
-						}
-						else
-						{
-							src.assign(src.swizzle(src_swizzle));
-						}
-
-						src = apply_instruction_modifiers(src);
-
-						if (instruction.data.dst.set_cond)
-						{
-							if (instruction.data.dst.no_dest)
-							{
-								result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero),
-									modify_cond.swizzle(src_swizzle) = src);
-							}
-							else
-							{
-								result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero),
-									modify_cond.swizzle(src_swizzle) = dest.swizzle(dest_swizzle) = src);
-							}
-						}
-						else
-						{
-							result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero), dest.swizzle(dest_swizzle) = src);
-						}
-					};
-
 					if (!instruction.data.dst.set_cond && instruction.data.dst.no_dest)
 					{
 						//condition must be already handled in instruction semantic (IFE, LOOP, etc)
@@ -536,18 +502,47 @@ namespace rsx
 					}
 					else
 					{
+						static const expression_from<float_point_t<1>> zero(0.0f);
+
+						std::map<char, std::vector<std::pair<int, int>>> condition_map;
+
+						int channel_index = 0;
+						if (instruction.data.dst.mask_x) condition_map[cond.mask[0]].push_back({ 0, channel_index++ });
+						if (instruction.data.dst.mask_y) condition_map[cond.mask[1]].push_back({ 1, channel_index++ });
+						if (instruction.data.dst.mask_z) condition_map[cond.mask[2]].push_back({ 2, channel_index++ });
+						if (instruction.data.dst.mask_w) condition_map[cond.mask[3]].push_back({ 3, channel_index });
+
+						auto src = arg;
+
 						if (flags & disable_swizzle_as_dst)
 						{
-							for (int i = 0; i < dest.mask.size(); ++i)
-								set_channel(i, i);
+							src.assign(expression_from<float_point_t<4>>(arg.text, true, dest.mask.size()));
 						}
-						else
+
+						for (auto &entry : condition_map)
 						{
-							int dest_swizzle = 0;
-							if (instruction.data.dst.mask_x) set_channel(dest_swizzle++, 0);
-							if (instruction.data.dst.mask_y) set_channel(dest_swizzle++, 1);
-							if (instruction.data.dst.mask_z) set_channel(dest_swizzle++, 2);
-							if (instruction.data.dst.mask_w) set_channel(dest_swizzle, 3);
+							std::string src_swizzle;
+							std::string dst_swizzle;
+
+							for (std::pair<int, int> channels : entry.second)
+							{
+								src_swizzle += src.swizzle(flags & disable_swizzle_as_dst ? channels.second : channels.first).mask[0];
+								dst_swizzle += dest.swizzle(channels.second).mask[0];
+							}
+
+							expression_from<float_point_t<4>> expression{ src.with_mask(src_swizzle) };
+
+							if (!instruction.data.dst.no_dest)
+							{
+								expression.assign(dest.with_mask(dst_swizzle) = expression);
+							}
+
+							if (instruction.data.dst.set_cond)
+							{
+								expression.assign(cond.with_mask(dst_swizzle) = expression);
+							}
+
+							result += if_(cond.swizzle(channel_to_index.at(entry.first)).call_operator<boolean_t<1>>(operation, zero), expression);
 						}
 					}
 				}
@@ -595,9 +590,11 @@ namespace rsx
 			{
 				std::string arg_string;
 
+				bool is_single = true;
+
 				switch (instruction.destination_swizzle().size())
 				{
-				case 1: arg_string = float_point_t<1>::ctor(expression_from<boolean_t<1>>{ arg.to_string() }).to_string(); break;
+				case 1: arg_string = arg.to_string() + " ? 1.0 : 0.0"; is_single = false; break;
 				case 2: arg_string = float_point_t<2>::ctor(expression_from<boolean_t<2>>{ arg.to_string() }).to_string(); break;
 				case 3: arg_string = float_point_t<3>::ctor(expression_from<boolean_t<3>>{ arg.to_string() }).to_string(); break;
 				case 4: arg_string = float_point_t<4>::ctor(expression_from<boolean_t<4>>{ arg.to_string() }).to_string(); break;
@@ -606,7 +603,7 @@ namespace rsx
 					throw;
 				}
 
-				return set_dst(expression_from<float_point_t<4>>{ arg_string, std::string("xyzw"), true, 4 }, flags);
+				return set_dst(expression_from<float_point_t<4>>{ arg_string, std::string("xyzw"), is_single, 4 }, flags);
 			}
 
 			writer_t comment(const std::string& lines)
@@ -633,7 +630,7 @@ namespace rsx
 				switch (instruction.data.dst.opcode | (instruction.data.src1.opcode_is_branch << 6))
 				{
 				case opcode::NOP: return comment("nop");
-				case opcode::MOV: return set_dst(src(0));
+				case opcode::MOV: return set_dst(src_swizzled_as_dst(0), disable_swizzle_as_dst);
 				case opcode::MUL: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1), disable_swizzle_as_dst);
 				case opcode::ADD: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(1), disable_swizzle_as_dst);
 				case opcode::MAD: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2), disable_swizzle_as_dst);
@@ -779,362 +776,3 @@ namespace rsx
 		}
 	}
 }
-
-/*
-struct vp_shader : shader_code::clike_builder<shader_code::glsl_language>
-{
-	writer_t writer;
-
-	struct variable_info
-	{
-		std::string type;
-		std::string name;
-
-		bool operator ==(const variable_info& rhs) const
-		{
-			return type == rhs.type && name == rhs.name;
-		}
-
-		struct hash
-		{
-			std::size_t operator()(const variable_info& arg) const
-			{
-				return
-					std::hash<std::string>()(arg.type) ^
-					(std::hash<std::string>()(arg.name) - 1);
-			}
-		};
-	};
-
-	std::unordered_set<variable_info, variable_info::hash> uniforms;
-
-	template<typename Type>
-	expression_from<Type> make_uniform(const std::string& name, expression_from<Type> initializer)
-	{
-		return{ name };
-	}
-
-	template<typename Type>
-	expression_from<Type> make_uniform(const std::string& name)
-	{
-		return{ name };
-	}
-
-	struct else_t : expression_base_t
-	{
-
-	};
-
-	struct if_t : expression_from<void_t>
-	{
-		if_t(expression_from<boolean_t<1>> condition, std::function<void()> body = nullptr)
-			: expression_t("if (" + condition.to_string() + ")")
-		{
-		}
-
-		std::string finalize() const override
-		{
-			return to_string();
-		}
-	};
-
-	vp_shader()
-	{
-		auto A = make_uniform<boolean_t<4>>("A", boolean_t<4>::ctor(true));
-		auto B = make_uniform<float_point_t<4>>("B", float_point_t<4>::ctor(0.f));
-		auto C = make_uniform<float_point_t<4>>("C");
-		auto K = make_uniform<float_point_t<2>>("K");
-		auto D = make_uniform<sampler2D_t>("D");
-
-		writer.lines(
-			texture(D).xyzw(),
-			float_point_t<4>::ctor(1),
-			float_point_t<1>::ctor(1.f) / float_point_t<1>::ctor(),
-			if_t(A.x()),
-			A.x() = !(K.xy().y() != C.x()),
-			K.xy(),
-			A.y() = B.x() != C.x()
-		);
-	}
-};
-
-#include <unordered_map>
-
-struct rsx_fragment_shader
-{
-	std::vector<unsigned int> data;
-
-	struct hash_t
-	{
-		std::size_t operator ()(const rsx_fragment_shader& arg) const
-		{
-			return 0;
-			//return arg.hash;
-		}
-	};
-
-	bool operator ==(const rsx_fragment_shader& rhs) const
-	{
-		if (data.size() != rhs.data.size())
-			return false;
-
-		for (std::size_t i = 0; i < data.size(); ++i)
-		{
-			if (data[i] != rhs.data[i])
-				return false;
-		}
-
-		return true;
-	}
-};
-
-struct decompiled_rsx_fragment_shader
-{
-	std::vector<std::size_t> constant_offsets;
-	std::vector<std::string> uniforms;
-	int input_attributes;
-	int output_attributes;
-
-	std::string code;
-};
-
-struct glsl_shader_t
-{
-	int id;
-};
-
-template<typename CompiledType>
-struct finalized_rsx_fragment_shader
-{
-	int input_attributes;
-	int output_attributes;
-	int control;
-
-	std::string code;
-	CompiledType shader;
-};
-
-template<typename Type>
-struct rsx_program
-{
-	std::shared_ptr<finalized_rsx_fragment_shader<glsl_shader_t>> fragment_shader;
-	std::shared_ptr<finalized_rsx_fragment_shader<glsl_shader_t>> vertex_shader;
-};
-
-/*
-
-namespace fmt
-{
-	bool mask_test(const std::string &source, const std::string &mask, std::size_t source_offset = 0, std::size_t mask_offset = 0)
-	{
-		while (char sym = mask[mask_offset])
-		{
-			if (source[source_offset] == '\0')
-				return false;
-
-			switch (sym)
-			{
-			case '*':
-				while (source[source_offset])
-				{
-					if (mask_test(source, mask, source_offset, mask_offset + 1))
-						return true;
-
-					++source_offset;
-				}
-
-				return false;
-
-			case '\\':
-				sym = mask[++mask_offset];
-
-			default:
-				if (sym != source[source_offset])
-					return false;
-
-			case '?':
-				++source_offset; ++mask_offset;
-				break;
-			}
-		}
-
-		return source[source_offset] == '\0';
-	}
-}
-
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-
-namespace fs = std::tr2::sys;
-
-void _load_fragment_cache_file(const fs::path& data_path, const fs::path &source_path)
-{
-	rsx_fragment_shader shader;
-	{
-		std::ifstream data_f(data_path, std::ios::ate | std::ios::binary);
-		if (!data_f)
-			return;
-
-		shader.data.resize(data_f.tellg() / sizeof(rsx_fragment_shader::data[0]));
-		data_f.seekg(0, data_f.beg);
-
-		data_f.read((char*)shader.data.data(), shader.data.size() * sizeof(rsx_fragment_shader::data[0]));
-	}
-
-	cache_t<rsx_fragment_shader, decompiled_rsx_fragment_shader> cache;
-
-	decompiled_rsx_fragment_shader &decompiled_shader = cache.entry(shader);
-
-	{
-		std::ifstream data_f(data_path, std::ios::ate);
-		if (!data_f)
-			return;
-
-		data_f
-			>> decompiled_shader.input_attributes
-			>> decompiled_shader.output_attributes;
-
-
-		int constants_count;
-		data_f >> constants_count;
-
-		if (constants_count)
-		{
-			decompiled_shader.constant_offsets.resize(constants_count);
-
-			for (auto &offset : decompiled_shader.constant_offsets)
-			{
-				data_f >> offset;
-			}
-		}
-
-		int uniforms_count;
-		data_f >> uniforms_count;
-
-		if (uniforms_count)
-		{
-			decompiled_shader.uniforms.resize(uniforms_count);
-
-			for (auto &uniform : decompiled_shader.uniforms)
-			{
-				data_f >> uniform;
-			}
-		}
-
-		auto from_pos = data_f.tellg();
-		data_f.seekg(0, data_f.end);
-		auto end_pos = data_f.tellg();
-
-		decompiled_shader.code.resize(end_pos - from_pos);
-		data_f.seekg(from_pos);
-		data_f.read((char*)decompiled_shader.code.data(), decompiled_shader.code.size());
-	}
-}
-
-void _save_fragment_cache_file(const fs::path& data_path, const fs::path &source_path, std::pair<const rsx_fragment_shader&, decompiled_rsx_fragment_shader&> data)
-{
-	rsx_fragment_shader shader;
-	{
-		std::ifstream data_f(data_path, std::ios::ate | std::ios::binary);
-		if (!data_f)
-			return;
-
-		shader.data.resize(data_f.tellg() / sizeof(rsx_fragment_shader::data[0]));
-		data_f.seekg(0, data_f.beg);
-
-		data_f.read((char*)shader.data.data(), shader.data.size() * sizeof(rsx_fragment_shader::data[0]));
-	}
-
-	cache_t<rsx_fragment_shader, decompiled_rsx_fragment_shader> cache;
-
-	decompiled_rsx_fragment_shader &decompiled_shader = cache.entry(shader);
-
-	{
-		std::ifstream data_f(data_path, std::ios::ate);
-		if (!data_f)
-			return;
-
-		data_f
-			>> decompiled_shader.input_attributes
-			>> decompiled_shader.output_attributes;
-
-
-		int constants_count;
-		data_f >> constants_count;
-
-		if (constants_count)
-		{
-			decompiled_shader.constant_offsets.resize(constants_count);
-
-			for (auto &offset : decompiled_shader.constant_offsets)
-			{
-				data_f >> offset;
-			}
-		}
-
-		int uniforms_count;
-		data_f >> uniforms_count;
-
-		if (uniforms_count)
-		{
-			decompiled_shader.uniforms.resize(uniforms_count);
-
-			for (auto &uniform : decompiled_shader.uniforms)
-			{
-				data_f >> uniform;
-			}
-		}
-
-		auto from_pos = data_f.tellg();
-		data_f.seekg(0, data_f.end);
-		auto end_pos = data_f.tellg();
-
-		decompiled_shader.code.resize(end_pos - from_pos);
-		data_f.seekg(from_pos);
-		data_f.read((char*)decompiled_shader.code.data(), decompiled_shader.code.size());
-	}
-}
-
-
-void _load_shader_cache(const std::string &cache_path)
-{
-	if (!fs::exists(cache_path))
-	{
-		if (!fs::create_directories(cache_path))
-			return;
-	}
-
-	for (auto entry : fs::directory_iterator{ fs::path(cache_path).parent_path() })
-	{
-		if (entry.status().type() != fs::file_type::regular)
-		{
-			continue;
-		}
-
-		if (fmt::mask_test(entry.path().filename().string(), "*.vp.data"))
-		{
-			fs::path(entry.path()).replace_extension("glsl");
-		}
-
-		if (fmt::mask_test(entry.path().filename().string(), "*.fp.data"))
-		{
-			_load_fragment_cache_file(entry.path(), fs::path(entry.path()).replace_extension("glsl").string());
-		}
-	}
-}
-
-void load_shader_cache(const std::string &game_id)
-{
-	_load_shader_cache("./data/cache/rsx/");
-
-	if (!game_id.empty())
-		_load_shader_cache("./data/" + game_id + "/cache/rsx/");
-
-	cache_t<rsx_fragment_shader, decompiled_rsx_fragment_shader> cache;
-	cache.each([](std::pair<const rsx_fragment_shader&, decompiled_rsx_fragment_shader&> elem)
-	{
-		elem.first.data;
-	});
-}
-*/

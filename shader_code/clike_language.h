@@ -162,6 +162,17 @@ namespace shader_code
 				base_count = rhs.base_count;
 			}
 
+			template<typename Type>
+			expression_t<Type::type, Type::count> as() const
+			{
+				return{ text, mask, is_single, base_count };
+			}
+
+			expression_t<Type, Count> with_mask(const std::string &mask) const
+			{
+				return{ text, mask, is_single, base_count };
+			}
+
 			template<typename... Channels>
 			auto swizzle(Channels... channels) const -> expression_t<Type, sizeof...(channels)>
 			{
