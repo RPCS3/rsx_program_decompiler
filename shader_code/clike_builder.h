@@ -231,37 +231,37 @@ namespace shader_code
 			return function_t<type_t<Type, Count>, language::function_name_t<function_class_t::function_max>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> greater(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_greater>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> less(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_less>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> equal(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_equal>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> greater_equal(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_greater_equal>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> less_equal(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_less_equal>>::invoke(a, b);
 		}
 
-		template<type_class_t Type, int Count, typename = std::enable_if_t<(Count > 1)>>
+		template<type_class_t Type, int Count>
 		static expression_from<boolean_t<Count>> not_equal(const expression_t<Type, Count>& a, const expression_t<Type, Count>& b)
 		{
 			return function_t<boolean_t<Count>, language::function_name_t<function_class_t::function_not_equal>>::invoke(a, b);

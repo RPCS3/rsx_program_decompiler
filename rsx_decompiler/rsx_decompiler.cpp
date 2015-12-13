@@ -9,10 +9,68 @@ namespace rsx
 {
 	static const std::string index_to_channel[4] = { "x", "y", "z", "w" };
 	static const std::unordered_map<char, int> channel_to_index = { { 'x', 0 },{ 'y', 1 },{ 'z', 2 },{ 'w', 3 } };
+	static const std::string mask = "xyzw";
 
 	template<typename Language>
 	struct decompiler_base : shader_code::clike_builder<Language>
 	{
+		enum class compare_function
+		{
+			less,
+			greater,
+			equal,
+			less_equal,
+			greater_equal,
+			not_equal
+		};
+
+		template<type_class_t Type, int Count>
+		static expression_from<boolean_t<Count>> single_compare_function(compare_function function, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		{
+			std::string operator_string;
+
+			switch (function)
+			{
+			case compare_function::less: operator_string = "<"; break;
+			case compare_function::greater: operator_string = ">"; break;
+			case compare_function::equal: operator_string = "=="; break;
+			case compare_function::less_equal: operator_string = "<="; break;
+			case compare_function::greater_equal: operator_string = ">="; break;
+			case compare_function::not_equal: operator_string = "!="; break;
+
+			default:
+				throw;
+			}
+
+			return a.to_string() + " " + operator_string + " " + b.to_string();
+		}
+
+		template<type_class_t Type, int Count>
+		static expression_from<boolean_t<Count>> vector_compare_function(compare_function function, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		{
+			switch (function)
+			{
+			case compare_function::less: return less(a, b);
+			case compare_function::greater: return greater(a, b);
+			case compare_function::equal: return equal(a, b);
+			case compare_function::less_equal: return less_equal(a, b);
+			case compare_function::greater_equal: return greater_equal(a, b);
+			case compare_function::not_equal: return not_equal(a, b);
+			}
+
+			throw;
+		}
+
+		template<type_class_t Type, int Count>
+		static expression_from<boolean_t<Count>> custom_compare(compare_function function, int channel_count, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		{
+			if (channel_count == 1)
+			{
+				return  single_compare_function(function, a, b);
+			}
+
+			return vector_compare_function(function, a, b);
+		}
 	};
 }
 
@@ -192,16 +250,9 @@ namespace rsx
 					return result;
 				}
 
-
-				expression_from<float_point_t<4>> output(context_t& context) const
-				{
-					return{ "unk_output" };
-				}
-
 				std::string destination_swizzle() const
 				{
 					std::string swizzle;
-					static const std::string mask = "xyzw";
 
 					if (data.dst.mask_x) swizzle += mask[0];
 					if (data.dst.mask_y) swizzle += mask[1];
@@ -238,14 +289,95 @@ namespace rsx
 				return src(index, instruction.data.dst.set_cond || !instruction.data.dst.no_dest);
 			}
 
-			expression_from<boolean_t<4>> modify_condition()
+			expression_from<float_point_t<4>> modify_condition_register() const
 			{
-				return{ "unk_modify_condition" };
+				return{ "cc" + std::to_string(instruction.data.src0.cond_mod_reg_index) };
 			}
 
-			expression_from<boolean_t<4>> execution_condition()
+			expression_from<float_point_t<4>> execution_condition_register() const
 			{
-				return{ "unk_execution_condition" };
+				std::string swizzle;
+
+				swizzle += mask[instruction.data.src0.cond_swizzle_x];
+				swizzle += mask[instruction.data.src0.cond_swizzle_y];
+				swizzle += mask[instruction.data.src0.cond_swizzle_z];
+				swizzle += mask[instruction.data.src0.cond_swizzle_w];
+
+				return{ "cc" + std::to_string(instruction.data.src0.cond_reg_index), swizzle };
+			}
+
+			enum class condition_operation
+			{
+				all,
+				any
+			};
+
+			compare_function execution_condition_function() const
+			{
+				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_eq)
+				{
+					return compare_function::greater_equal;
+				}
+				if (instruction.data.src0.exec_if_lt && instruction.data.src0.exec_if_eq)
+				{
+					return compare_function::less_equal;
+				}
+				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_lt)
+				{
+					return compare_function::not_equal;
+				}
+				if (instruction.data.src0.exec_if_gr)
+				{
+					return compare_function::greater;
+				}
+				if (instruction.data.src0.exec_if_lt)
+				{
+					return compare_function::less;
+				}
+
+				if (instruction.data.src0.exec_if_eq)
+				{
+					return compare_function::equal;
+				}
+
+				throw;
+			}
+
+			expression_from<boolean_t<1>> execution_condition(condition_operation operation) const
+			{
+				auto cond = execution_condition_register();
+
+				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_eq && instruction.data.src0.exec_if_gr)
+				{
+					return true;
+				}
+
+				if (!instruction.data.src0.exec_if_gr && !instruction.data.src0.exec_if_eq && !instruction.data.src0.exec_if_gr)
+				{
+					return false;
+				}
+
+				if (instruction.data.src0.cond_swizzle_x == instruction.data.src0.cond_swizzle_y &&
+					instruction.data.src0.cond_swizzle_y == instruction.data.src0.cond_swizzle_z &&
+					instruction.data.src0.cond_swizzle_z == instruction.data.src0.cond_swizzle_w)
+				{
+					return custom_compare(execution_condition_function(), 1, cond.x(), expression_from<float_point_t<1>>(0.0f));
+				}
+
+				auto result = custom_compare(execution_condition_function(), 4, cond, expression_from<float_point_t<4>>(float_point_t<4>::ctor(0.0f)));
+
+				switch (operation)
+				{
+				case condition_operation::all: return all(result);
+				case condition_operation::any: return any(result);
+				}
+
+				throw;
+			}
+
+			expression_from<boolean_t<4>> compare(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
+			{
+				return custom_compare(function, (int)instruction.destination_swizzle().size(), a, b);
 			}
 
 			expression_from<sampler2D_t> tex()
@@ -260,7 +392,7 @@ namespace rsx
 
 				if (need_condition)
 				{
-					return if_(any(execution_condition()), expr);
+					return if_(any(execution_condition(condition_operation::any)), expr);
 				}
 
 				return expr;
@@ -322,71 +454,11 @@ namespace rsx
 				return arg;
 			}
 
-			enum class compare_function
-			{
-				less,
-				greater,
-				equal,
-				less_equal,
-				greater_equal,
-				not_equal
-			};
-
-			static expression_from<boolean_t<4>> single_compare_function(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
-			{
-				std::string operator_string;
-
-				switch (function)
-				{
-				case compare_function::less: operator_string = "<"; break;
-				case compare_function::greater: operator_string = ">"; break;
-				case compare_function::equal: operator_string = "=="; break;
-				case compare_function::less_equal: operator_string = "<="; break;
-				case compare_function::greater_equal: operator_string = ">="; break;
-				case compare_function::not_equal: operator_string = "!="; break;
-
-				default:
-					throw;
-				}
-
-				return a.to_string() + " " + operator_string + " " + b.to_string();
-			}
-
-			static expression_from<boolean_t<4>> vector_compare_function(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
-			{
-				switch (function)
-				{
-				case compare_function::less: return less(a, b);
-				case compare_function::greater: return greater(a, b);
-				case compare_function::equal: return equal(a, b);
-				case compare_function::less_equal: return less_equal(a, b);
-				case compare_function::greater_equal: return greater_equal(a, b);
-				case compare_function::not_equal: return not_equal(a, b);
-				}
-
-				throw;
-			}
-
-			static expression_from<boolean_t<4>> compare(compare_function function, int channel_count, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
-			{
-				if (channel_count == 1)
-				{
-					return  single_compare_function(function, a, b);
-				}
-
-				return vector_compare_function(function, a, b);
-			}
-
-			expression_from<boolean_t<4>> compare(compare_function function, expression_from<float_point_t<4>> a, expression_from<float_point_t<4>> b)
-			{
-				return compare(function, instruction.destination_swizzle().size(), a, b);
-			}
-
 			writer_t set_dst(const expression_from<float_point_t<4>>& arg, u32 flags = none)
 			{
 				writer_t result;
 
-				auto modify_cond = modify_condition();
+				auto modify_cond = modify_condition_register();
 				auto dest = instruction.destination(context);
 
 				if (!instruction.data.src0.exec_if_eq || !instruction.data.src0.exec_if_gr || !instruction.data.src0.exec_if_lt)
@@ -397,7 +469,7 @@ namespace rsx
 					cond_mask += index_to_channel[instruction.data.src0.cond_swizzle_z];
 					cond_mask += index_to_channel[instruction.data.src0.cond_swizzle_w];
 
-					auto cond = execution_condition();
+					auto cond = execution_condition_register();
 
 					std::string operation;
 
@@ -442,17 +514,17 @@ namespace rsx
 							if (instruction.data.dst.no_dest)
 							{
 								result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero),
-									modify_cond.swizzle(src_swizzle) = boolean_t<1>::ctor(src));
+									modify_cond.swizzle(src_swizzle) = src);
 							}
 							else
 							{
-								result += if_(cond.swizzle(src_swizzle).call_operator(operation, zero),
-									modify_cond.swizzle(src_swizzle) = boolean_t<1>::ctor(dest.swizzle(dest_swizzle) = src));
+								result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero),
+									modify_cond.swizzle(src_swizzle) = dest.swizzle(dest_swizzle) = src);
 							}
 						}
 						else
 						{
-							result += if_(cond.swizzle(src_swizzle).call_operator(operation, zero), dest.swizzle(dest_swizzle) = src);
+							result += if_(cond.swizzle(src_swizzle).call_operator<boolean_t<1>>(operation, zero), dest.swizzle(dest_swizzle) = src);
 						}
 					};
 
@@ -636,7 +708,7 @@ namespace rsx
 				case opcode::BRK: return conditional(expression_from<void_t>("break"));
 				case opcode::CAL: return unimplemented("CAL");
 				case opcode::IFE:
-					writer += writer_t{ "if (" + all(execution_condition()).to_string() + ")\n{\n" };
+					writer += writer_t{ "if (" + execution_condition(condition_operation::all).to_string() + ")\n{\n" };
 
 					if (instruction.data.src2.end_offset != instruction.data.src1.else_offset)
 						writer.before(instruction.data.src1.else_offset >> 2, "}\nelse\n{\n");
