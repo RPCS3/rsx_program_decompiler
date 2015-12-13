@@ -26,3 +26,12 @@
 *.exe
 *.out
 *.app
+
+
+*.suo
+*.ipch
+*.VC.db
+*.VC.opendb
+bin/*
+lib/*
+tmp/*

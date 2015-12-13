@@ -636,13 +636,27 @@ namespace rsx
 				case opcode::BRK: return conditional(expression_from<void_t>("break"));
 				case opcode::CAL: return unimplemented("CAL");
 				case opcode::IFE:
+					writer += writer_t{ "if (" + all(execution_condition()).to_string() + ")\n{\n" };
+
 					if (instruction.data.src2.end_offset != instruction.data.src1.else_offset)
 						writer.before(instruction.data.src1.else_offset >> 2, "}\nelse\n{\n");
+
 					writer.after(instruction.data.src2.end_offset >> 2, "}\n");
 
-					return writer_t{ "if (" + all(execution_condition()).to_string() + ")\n{\n" };
+					return "";
 
-				case opcode::LOOP: return unimplemented("LOOP");
+				case opcode::LOOP:
+					writer += writer_t
+					{
+						"for ("
+						"int i = " + std::to_string(instruction.data.src1.init_counter) + "; " +
+						"i < " + std::to_string(instruction.data.src1.end_counter) + "; " +
+						(instruction.data.src1.increment == 1 ? "i++" : "i += " + std::to_string(instruction.data.src1.increment)) +
+						")\n{\n"
+					};
+
+					writer.after(instruction.data.src2.end_offset >> 2, "}\n");
+					return "";
 				case opcode::REP: return unimplemented("REP");
 				case opcode::RET: return conditional(expression_from<void_t>("return"));
 				}
