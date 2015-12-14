@@ -86,49 +86,48 @@ namespace rsx
 	{
 		class decompiler : public decompiler_base<shader_code::glsl_language>
 		{
-			enum class variable_modifier
-			{
-				none,
-				in,
-				out,
-				constant
-			};
-
 			struct context_t
 			{
-				struct variable_info
-				{
-					std::string type;
-					std::string name;
-				};
-
-				u32 offset;
+				decompiled_program program;
 				bool is_next_is_constant;
-
-				std::vector<u32> constants_offsets;
-				std::unordered_map<variable_modifier, variable_info> variables;
-
-				template<typename Type = float_point_t<4>>
-				expression_from<Type> variable(const std::string& name, variable_modifier modifier = variable_modifier::none)
-				{
-					variables[modifier] = { Type::name(), name };
-
-					return{ name };
-				}
+				u32 offset;
 
 				expression_from<float_point_t<4>> constant()
 				{
-					return variable("fc" + std::to_string(offset + sizeof(instruction_t)));
+					constant_info info;
+					info.id = offset + sizeof(instruction_t);
+					info.name = "fc" + std::to_string(info.id);
+					program.constants.insert(info);
+					is_next_is_constant = true;
+
+					return info.name;
 				}
 
 				expression_from<float_point_t<4>> temporary(bool is_fp16, int index)
 				{
-					return variable((is_fp16 ? "h" : "r") + std::to_string(index));
+					register_info info;
+					info.id = index;
+					info.type = is_fp16 ? register_type::half_float_point : register_type::single_float_point;
+					info.name = (is_fp16 ? "h" : "r") + std::to_string(index);
+					program.temporary_registers.insert(info);
+					return info.name;
+				}
+
+				expression_from<float_point_t<4>> condition(int index)
+				{
+					register_info info;
+					info.id = index;
+					info.type = register_type::single_float_point;
+					info.name = "cc" + std::to_string(index);
+					program.temporary_registers.insert(info);
+
+					return info.name;
 				}
 
 				expression_from<float_point_t<4>> input(int index)
 				{
-					return variable(input_attrib_map[index]);
+					program.input_attributes |= (1 << index);
+					return input_attrib_map[index];
 				}
 			};
 
@@ -222,9 +221,7 @@ namespace rsx
 						{
 						case src_reg_type_t::temporary: return context.temporary(src.fp16, src.tmp_index);
 						case src_reg_type_t::input: return context.input(data.dst.src_attr_reg_num);
-						case src_reg_type_t::constant:
-							context.is_next_is_constant = true;
-							return context.constant();
+						case src_reg_type_t::constant: return context.constant();
 						}
 
 						throw;
@@ -291,12 +288,12 @@ namespace rsx
 				return src(index, instruction.data.dst.set_cond || !instruction.data.dst.no_dest);
 			}
 
-			expression_from<float_point_t<4>> modify_condition_register() const
+			expression_from<float_point_t<4>> modify_condition_register()
 			{
-				return{ "cc" + std::to_string(instruction.data.src0.cond_mod_reg_index) };
+				return context.condition(instruction.data.src0.cond_mod_reg_index);
 			}
 
-			expression_from<float_point_t<4>> execution_condition_register() const
+			expression_from<float_point_t<4>> execution_condition_register()
 			{
 				std::string swizzle;
 
@@ -305,7 +302,7 @@ namespace rsx
 				swizzle += mask[instruction.data.src0.cond_swizzle_z];
 				swizzle += mask[instruction.data.src0.cond_swizzle_w];
 
-				return{ "cc" + std::to_string(instruction.data.src0.cond_reg_index), swizzle };
+				return{ context.condition(instruction.data.src0.cond_reg_index).text, swizzle };
 			}
 
 			enum class condition_operation
@@ -345,7 +342,7 @@ namespace rsx
 				throw;
 			}
 
-			expression_from<boolean_t<1>> execution_condition(condition_operation operation) const
+			expression_from<boolean_t<1>> execution_condition(condition_operation operation)
 			{
 				auto cond = execution_condition_register();
 
@@ -516,7 +513,7 @@ namespace rsx
 
 						if (flags & disable_swizzle_as_dst)
 						{
-							src.assign(expression_from<float_point_t<4>>(arg.text, true, dest.mask.size()));
+							src.assign(expression_from<float_point_t<4>>(arg.text, arg.mask, true, dest.mask.size()));
 						}
 
 						for (auto &entry : condition_map)
@@ -653,7 +650,7 @@ namespace rsx
 				case opcode::SEQ: return set_dst(compare(compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
 				case opcode::FRC: return set_dst(fract(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case opcode::FLR: return set_dst(floor(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::KIL: return conditional(expression_from<void_t>("discard"));
+				case opcode::KIL: return conditional(expression_from<void_t>("discard;"));
 				case opcode::PK4: return unimplemented("PK4");
 				case opcode::UP4: return unimplemented("UP4");
 				case opcode::DDX: return set_dst(ddx(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
@@ -702,7 +699,7 @@ namespace rsx
 				case opcode::LIF: return unimplemented("LIF");
 				case opcode::FENCT: return comment("fenct");
 				case opcode::FENCB: return comment("fencb");
-				case opcode::BRK: return conditional(expression_from<void_t>("break"));
+				case opcode::BRK: return conditional(expression_from<void_t>("break;"));
 				case opcode::CAL: return unimplemented("CAL");
 				case opcode::IFE:
 					writer += writer_t{ "if (" + execution_condition(condition_operation::all).to_string() + ")\n{\n" };
@@ -727,13 +724,13 @@ namespace rsx
 					writer.after(instruction.data.src2.end_offset >> 2, "}\n");
 					return "";
 				case opcode::REP: return unimplemented("REP");
-				case opcode::RET: return conditional(expression_from<void_t>("return"));
+				case opcode::RET: return conditional(expression_from<void_t>("return;"));
 				}
 
 				throw;
 			}
 
-			void decompile(std::size_t offset, instruction_t* instructions)
+			decompiled_program decompile(std::size_t offset, instruction_t* instructions)
 			{
 				context.offset = 0;
 				context.is_next_is_constant = false;
@@ -753,26 +750,17 @@ namespace rsx
 					if (instruction.data.dst.end)
 						break;
 				}
+
+				context.program.entry_function = "func0";
+				context.program.code = "void func0()\n{\n" + writer.build() + "}\n";
+
+				return context.program;
 			}
 		};
 
 		decompiled_program decompile(std::size_t offset, ucode_instr *instructions)
 		{
-			decompiler dec;
-			dec.decompile(offset, (decompiler::instruction_t*)instructions);
-
-			decompiled_program result{};
-
-			//result.constant_offsets = ...;
-			//result.uniforms = ...;
-			//result.textures = ...;
-			//result.temporary_registers = ...;
-			//result.input_attributes = ...;
-			//result.output_attributes = ...;
-
-			result.code = dec.writer.build();
-
-			return result;
+			return decompiler{}.decompile(offset, (decompiler::instruction_t*)instructions);
 		}
 	}
 }

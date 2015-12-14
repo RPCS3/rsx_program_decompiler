@@ -182,10 +182,139 @@ std::vector<char> load_file(const std::string& path)
 	throw;
 }
 
+#ifdef _DEBUG
+#include <Windows.h>
+#include <gl/GL.h>
+
+#pragma comment(lib, "OpenGL32.lib")
+
+LRESULT __stdcall WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+	switch (msg)
+	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	default:
+		std::cout << '.';
+		return DefWindowProc(hwnd, msg, wp, lp);
+	}
+}
+
+void test(const std::string &shader)
+{
+	WNDCLASSEXA wndclass =
+	{ 
+		sizeof(WNDCLASSEXA),
+		CS_DBLCLKS,
+		WindowProcedure,
+		0, 0,
+		GetModuleHandle(nullptr),
+		LoadIcon(nullptr, IDI_APPLICATION),
+		LoadCursor(nullptr, IDC_ARROW),
+		HBRUSH(COLOR_WINDOW + 1),
+		0,
+		"TestClass",
+		LoadIcon(0,IDI_APPLICATION)
+	};
+
+	RegisterClassExA(&wndclass);
+
+	HWND hwnd = CreateWindowA("TestClass", "", WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, GetModuleHandleA(nullptr), nullptr);
+
+	PIXELFORMATDESCRIPTOR pfd =
+	{
+		sizeof(PIXELFORMATDESCRIPTOR),
+		1,
+		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
+		PFD_TYPE_RGBA,            //The kind of framebuffer. RGBA or palette.
+		32,                        //Colordepth of the framebuffer.
+		0, 0, 0, 0, 0, 0,
+		0,
+		0,
+		0,
+		0, 0, 0, 0,
+		24,                        //Number of bits for the depthbuffer
+		8,                        //Number of bits for the stencilbuffer
+		0,                        //Number of Aux buffers in the framebuffer.
+		PFD_MAIN_PLANE,
+		0,
+		0, 0, 0
+	};
+
+	HDC hdc = GetDC(hwnd);
+	SetPixelFormat(hdc, ChoosePixelFormat(hdc, &pfd), &pfd);
+
+	HGLRC hglrc = wglCreateContext(hdc);
+	wglMakeCurrent(hdc, hglrc);
+
+	using glShaderSource_t = void(*)(GLuint shader, GLsizei count, const char **string, const GLint *length);
+	using glCreateShader_t = GLuint(*)(GLenum shaderType);
+	using glCompileShader_t = void(*)(GLuint shader);
+	using glDeleteShader_t = void(*)(GLuint shader);
+	using glGetShaderiv_t = void(*)(GLuint shader, GLenum pname, GLint *params);
+	using glGetShaderInfoLog_t = void(*)(GLuint shader, GLsizei maxLength, GLsizei *length, char *infoLog);
+
+	enum
+	{
+		GL_FRAGMENT_SHADER = 35632,
+		GL_SHADER_SOURCE_LENGTH = 35720,
+		GL_COMPILE_STATUS = 35713,
+	};
+
+	auto glShaderSource = (glShaderSource_t)wglGetProcAddress("glShaderSource");
+	auto glCreateShader = (glCreateShader_t)wglGetProcAddress("glCreateShader");
+	auto glCompileShader = (glCompileShader_t)wglGetProcAddress("glCompileShader");
+	auto glDeleteShader = (glDeleteShader_t)wglGetProcAddress("glDeleteShader");
+	auto glGetShaderiv = (glGetShaderiv_t)wglGetProcAddress("glGetShaderiv");
+	auto glGetShaderInfoLog = (glGetShaderInfoLog_t)wglGetProcAddress("glGetShaderInfoLog");
+
+	const char *shader_text = shader.data();
+	const GLint length = shader.length();
+
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &shader_text, &length);
+	glCompileShader(fragmentShader);
+
+	GLint param;
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &param);
+	if (param == 0)
+	{
+		std::cout << "compilation failed." << std::endl;
+		glGetShaderiv(fragmentShader, GL_SHADER_SOURCE_LENGTH, &param);
+
+		std::vector<char> buffer(param + 1);
+
+		glGetShaderInfoLog(fragmentShader, param, &param, buffer.data());
+
+		std::cout << buffer.data();
+	}
+
+	glDeleteShader(fragmentShader);
+
+	wglMakeCurrent(nullptr, nullptr);
+	wglDeleteContext(hglrc);
+	ReleaseDC(hwnd, hdc);
+	DestroyWindow(hwnd);
+	UnregisterClassA("TestClass", GetModuleHandleA(nullptr));
+}
+#endif
+
+
 void print_info(const rsx::decompiled_program& program)
 {
-	std::cout << "[CODE]" << std::endl;
-	std::cout << program.code;
+	//std::cout << "[RAW CODE]" << std::endl;
+	//std::cout << program.code;
+
+	rsx::complete_program complete_program = rsx::finalize_program(program);
+	std::cout << "[COMPLETE CODE]" << std::endl;
+	std::cout << complete_program.code;
+
+#ifdef _DEBUG
+	test(complete_program.code);
+#endif
 }
 
 int main(int argc, char** argv)
