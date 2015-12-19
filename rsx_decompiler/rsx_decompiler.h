@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "rsx_fp_ucode.h"
+#include "rsx_vp_ucode.h"
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace rsx
 {
@@ -79,8 +81,22 @@ namespace rsx
 		}
 	};
 
+	enum class decompile_language
+	{
+		glsl
+	};
+
+	enum class program_type
+	{
+		vertex,
+		fragment
+	};
+
 	struct decompiled_program
 	{
+		program_type type;
+		decompile_language code_language;
+
 		std::unordered_set<constant_info, hasher> constants;
 		std::unordered_set<texture_info, hasher> textures;
 		std::unordered_set<register_info, hasher> temporary_registers;
@@ -96,52 +112,21 @@ namespace rsx
 		std::string code;
 	};
 
+	extern const std::string index_to_channel[4];
+	extern const std::unordered_map<char, int> channel_to_index;
+	extern const std::string mask;
+
+	complete_program finalize_program(const decompiled_program& program);
+
+
 	namespace fragment_program
 	{
-		decompiled_program decompile(std::size_t offset, ucode_instr* instructions);
+		decompiled_program decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
 	}
 
-	inline complete_program finalize_program(const decompiled_program& program)
+	namespace vertex_program
 	{
-		complete_program result{ "#version 420\n\n" };
-
-		for (const constant_info& constant : program.constants)
-		{
-			result.code += "uniform vec4 " + constant.name + ";\n";
-		}
-
-		result.code += "\n";
-
-		for (const register_info& temporary : program.temporary_registers)
-		{
-			result.code += "vec4 " + temporary.name + " = vec4(0.0);\n";
-		}
-
-		result.code += "\n";
-
-		for (const texture_info& texture : program.textures)
-		{
-			result.code += "uniform sampler2D " + texture.name + ";\n";
-		}
-
-		for (std::size_t index = 0; index < std::size(rsx::fragment_program::input_attrib_map); ++index)
-		{
-			if (program.input_attributes & (1 << index))
-			{
-				result.code += "in vec4 " + rsx::fragment_program::input_attrib_map[index] + ";\n";
-			}
-		}
-
-		result.code += "\n";
-		result.code += program.code;
-
-		result.code +=
-			R"(
-void main()
-{
-	)" + program.entry_function + R"(();
-}
-)";
-		return result;
+		decompiled_program decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
 	}
 }
+

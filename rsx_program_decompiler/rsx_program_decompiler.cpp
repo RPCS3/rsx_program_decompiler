@@ -272,7 +272,7 @@ void test(const std::string &shader)
 	auto glGetShaderInfoLog = (glGetShaderInfoLog_t)wglGetProcAddress("glGetShaderInfoLog");
 
 	const char *shader_text = shader.data();
-	const GLint length = shader.length();
+	const GLint length = (GLint)shader.length();
 
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &shader_text, &length);
@@ -325,7 +325,7 @@ int main(int argc, char** argv)
 	std::vector<char> file = load_file("tmp.fp.ucode");
 
 	rsx::fragment_program::ucode_instr *instructions = (rsx::fragment_program::ucode_instr *)file.data();
-	rsx::decompiled_program program = rsx::fragment_program::decompile(0, instructions);
+	rsx::decompiled_program program = rsx::fragment_program::decompile(0, instructions, rsx::decompile_language::glsl);
 
 	print_info(program);
 	/*

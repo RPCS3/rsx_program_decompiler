@@ -8,13 +8,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="rsx_decompiler.cpp" />
-    <ClCompile Include="pch.cpp" />
     <ClCompile Include="rsx_fp_ucode.cpp" />
+    <ClCompile Include="rsx_fp_decompiler.cpp" />
+    <ClCompile Include="rsx_vp_decompiler.cpp" />
+    <ClCompile Include="rsx_vp_ucode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rsx_decompiler.h" />
-    <ClInclude Include="pch.h" />
     <ClInclude Include="cache.h" />
     <ClInclude Include="rsx_fp_ucode.h" />
+    <ClInclude Include="rsx_vp_ucode.h" />
+    <ClInclude Include="rsx_decompiler_base.h" />
   </ItemGroup>
 </Project>
