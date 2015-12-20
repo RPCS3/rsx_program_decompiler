@@ -8,6 +8,8 @@ namespace rsx
 	template<typename Language>
 	struct decompiler_base : shader_code::clike_builder<Language>
 	{
+		writer_t writer;
+
 		enum class compare_function
 		{
 			less,
@@ -64,6 +66,25 @@ namespace rsx
 			}
 
 			return vector_compare_function(function, a, b);
+		}
+
+		writer_t comment(const std::string& lines)
+		{
+			writer_t result;
+
+			result += "//" + lines + "\n";
+
+			return result;
+		}
+
+		writer_t warning(const std::string& lines)
+		{
+			return comment("WARNING: " + lines);
+		}
+
+		writer_t unimplemented(const std::string& lines)
+		{
+			return comment("TODO: " + lines);
 		}
 	};
 }

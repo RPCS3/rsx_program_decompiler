@@ -260,7 +260,7 @@ void test(const std::string &shader)
 	enum
 	{
 		GL_FRAGMENT_SHADER = 35632,
-		GL_SHADER_SOURCE_LENGTH = 35720,
+		GL_INFO_LOG_LENGTH = 35716,
 		GL_COMPILE_STATUS = 35713,
 	};
 
@@ -283,10 +283,9 @@ void test(const std::string &shader)
 	if (param == 0)
 	{
 		std::cout << "compilation failed." << std::endl;
-		glGetShaderiv(fragmentShader, GL_SHADER_SOURCE_LENGTH, &param);
+		glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &param);
 
 		std::vector<char> buffer(param + 1);
-
 		glGetShaderInfoLog(fragmentShader, param, &param, buffer.data());
 
 		std::cout << buffer.data();
@@ -312,6 +311,7 @@ void print_info(const rsx::decompiled_program& program)
 	std::cout << "[COMPLETE CODE]" << std::endl;
 	std::cout << complete_program.code;
 
+	std::cout.flush();
 #ifdef _DEBUG
 	test(complete_program.code);
 #endif
@@ -319,13 +319,27 @@ void print_info(const rsx::decompiled_program& program)
 
 int main(int argc, char** argv)
 {
+	extract_objects_from_elf(argv[1], "tmp.vp.cg", { "_binary_vp_shader_vpo_start", "_binary_vp_shader_vpo_end" });
 	extract_objects_from_elf(argv[1], "tmp.fp.cg", { "_binary_fp_shader_fpo_start", "_binary_fp_shader_fpo_end" });
 	extract_ucode("tmp.fp.cg", "tmp.fp.ucode");
+	extract_ucode("tmp.vp.cg", "tmp.vp.ucode");
 
-	std::vector<char> file = load_file("tmp.fp.ucode");
+	rsx::decompiled_program program;
 
-	rsx::fragment_program::ucode_instr *instructions = (rsx::fragment_program::ucode_instr *)file.data();
-	rsx::decompiled_program program = rsx::fragment_program::decompile(0, instructions, rsx::decompile_language::glsl);
+	if (0)
+	{
+		std::vector<char> file = load_file("tmp.fp.ucode");
+
+		rsx::fragment_program::ucode_instr *instructions = (rsx::fragment_program::ucode_instr *)file.data();
+		program = rsx::fragment_program::decompile(0, instructions, rsx::decompile_language::glsl);
+	}
+	else
+	{
+		std::vector<char> file = load_file("tmp.vp.ucode");
+
+		rsx::vertex_program::ucode_instr *instructions = (rsx::vertex_program::ucode_instr *)file.data();
+		program = rsx::vertex_program::decompile(0, instructions, rsx::decompile_language::glsl);
+	}
 
 	print_info(program);
 	/*

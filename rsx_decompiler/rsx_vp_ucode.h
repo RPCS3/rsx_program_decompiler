@@ -62,7 +62,7 @@ namespace rsx
 
 		union D0
 		{
-			u32 HEX;
+			u32 _u32;
 
 			struct
 			{
@@ -91,7 +91,7 @@ namespace rsx
 
 		union D1
 		{
-			u32 HEX;
+			u32 _u32;
 
 			struct
 			{
@@ -105,7 +105,7 @@ namespace rsx
 
 		union D2
 		{
-			u32 HEX;
+			u32 _u32;
 
 			struct
 			{
@@ -122,7 +122,7 @@ namespace rsx
 
 		union D3
 		{
-			u32 HEX;
+			u32 _u32;
 
 			struct
 			{
@@ -151,7 +151,7 @@ namespace rsx
 		{
 			union
 			{
-				u32 HEX;
+				u32 _u32;
 
 				struct
 				{
@@ -191,7 +191,7 @@ namespace rsx
 			D3 d3;
 		};
 
-		extern const std::string rsx_vp_sca_op_names[0x20];
-		extern const std::string rsx_vp_vec_op_names[0x20];
+		extern const std::string sca_op_names[0x20];
+		extern const std::string vec_op_names[0x20];
 	}
 }

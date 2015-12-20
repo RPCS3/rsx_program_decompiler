@@ -200,7 +200,6 @@ namespace rsx
 
 			instruction_t instruction;
 			context_t context;
-			writer_t writer;
 
 			expression_from<float_point_t<4>> src(int index, bool is_swizzle_as_dst = false)
 			{
@@ -525,25 +524,6 @@ namespace rsx
 				}
 
 				return set_dst(expression_from<float_point_t<4>>{ arg_string, std::string("xyzw"), is_single, 4 }, flags);
-			}
-
-			writer_t comment(const std::string& lines)
-			{
-				writer_t result;
-
-				result += "//" + lines + "\n";
-
-				return result;
-			}
-
-			writer_t warning(const std::string& lines)
-			{
-				return comment("WARNING: " + lines);
-			}
-
-			writer_t unimplemented(const std::string& lines)
-			{
-				return comment("TODO: " + lines);
 			}
 
 			expression_base_t decode_instruction()
