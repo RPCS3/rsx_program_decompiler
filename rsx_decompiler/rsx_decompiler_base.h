@@ -5,10 +5,14 @@
 
 namespace rsx
 {
+	using namespace shader_code;
+
 	template<typename Language>
-	struct decompiler_base : shader_code::clike_builder<Language>
+	struct decompiler_base : clike_builder<Language>
 	{
-		writer_t writer;
+		using base = clike_builder<Language>;
+
+		builder::writer_t writer;
 
 		enum class compare_function
 		{
@@ -20,8 +24,9 @@ namespace rsx
 			not_equal
 		};
 
-		template<type_class_t Type, int Count>
-		static expression_from<boolean_t<Count>> single_compare_function(compare_function function, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		template<clike_language::type_class_t Type, int Count>
+		static typename base::boolean_expr<Count> single_compare_function(compare_function function,
+			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
 		{
 			std::string operator_string;
 
@@ -41,24 +46,26 @@ namespace rsx
 			return a.to_string() + " " + operator_string + " " + b.to_string();
 		}
 
-		template<type_class_t Type, int Count>
-		static expression_from<boolean_t<Count>> vector_compare_function(compare_function function, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		template<clike_language::type_class_t Type, int Count>
+		static typename base::boolean_expr<Count> vector_compare_function(compare_function function,
+			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
 		{
 			switch (function)
 			{
-			case compare_function::less: return less(a, b);
-			case compare_function::greater: return greater(a, b);
-			case compare_function::equal: return equal(a, b);
-			case compare_function::less_equal: return less_equal(a, b);
-			case compare_function::greater_equal: return greater_equal(a, b);
-			case compare_function::not_equal: return not_equal(a, b);
+			case compare_function::less: return base::less(a, b);
+			case compare_function::greater: return base::greater(a, b);
+			case compare_function::equal: return base::equal(a, b);
+			case compare_function::less_equal: return base::less_equal(a, b);
+			case compare_function::greater_equal: return base::greater_equal(a, b);
+			case compare_function::not_equal: return base::not_equal(a, b);
 			}
 
 			throw;
 		}
 
-		template<type_class_t Type, int Count>
-		static expression_from<boolean_t<Count>> custom_compare(compare_function function, int channel_count, expression_t<Type, Count> a, expression_t<Type, Count> b)
+		template<clike_language::type_class_t Type, int Count>
+		static typename base::boolean_expr<Count> custom_compare(compare_function function, int channel_count,
+			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
 		{
 			if (channel_count == 1)
 			{
@@ -68,21 +75,17 @@ namespace rsx
 			return vector_compare_function(function, a, b);
 		}
 
-		writer_t comment(const std::string& lines)
+		builder::writer_t comment(const std::string& lines)
 		{
-			writer_t result;
-
-			result += "//" + lines + "\n";
-
-			return result;
+			return{ "//" + lines + "\n" };
 		}
 
-		writer_t warning(const std::string& lines)
+		builder::writer_t warning(const std::string& lines)
 		{
 			return comment("WARNING: " + lines);
 		}
 
-		writer_t unimplemented(const std::string& lines)
+		builder::writer_t unimplemented(const std::string& lines)
 		{
 			return comment("TODO: " + lines);
 		}

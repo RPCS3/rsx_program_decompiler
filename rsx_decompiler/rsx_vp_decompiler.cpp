@@ -7,11 +7,32 @@ namespace rsx
 {
 	namespace vertex_program
 	{
-		class decompiler : public decompiler_base<shader_code::glsl_language>
+		template<typename Language>
+		class decompiler : public decompiler_base<Language>
 		{
+			using base = decompiler_base<Language>;
+
+			template<int Count>
+			using boolean_expr = typename base::boolean_expr<Count>;
+
+			template<int Count>
+			using float_point_expr = typename base::float_point_expr<Count>;
+
+			template<int Count>
+			using integer_expr = typename base::integer_expr<Count>;
+
+			template<int Count>
+			using float_point_t = typename base::float_point_t<Count>;
+
+			template<int Count>
+			using boolean_t = typename base::boolean_t<Count>;
+
+			template<int Count>
+			using integer_t = typename base::integer_t<Count>;
+
 			struct context_t
 			{
-				decompiled_program program;
+				decompiled_shader program;
 
 				std::string address_register(u32 address_register)
 				{
@@ -47,7 +68,7 @@ namespace rsx
 					register_info info;
 					info.id = index;
 					info.type = register_type::single_float_point;
-					info.name = "o" + std::to_string(index);
+					info.name = rsx::fragment_program::input_attrib_map[index];//"o" + std::to_string(index);
 					program.temporary_registers.insert(info);
 					return info.name;
 				}
@@ -112,25 +133,9 @@ namespace rsx
 					return result;
 				}
 
-				static u32 swap_endianess(u32 data)
+				const instruction_t& unpack() const
 				{
-					return
-						((data >> 24) & 0x000000ff) |
-						((data >> 8) & 0x0000ff00) |
-						((data << 8) & 0x00ff0000) |
-						((data << 24) & 0xff000000);
-				}
-
-				instruction_t unpack() const
-				{
-					instruction_t result;
-
-					result.data.d0._u32 = swap_endianess(data.d0._u32);
-					result.data.d1._u32 = swap_endianess(data.d1._u32);
-					result.data.d2._u32 = swap_endianess(data.d2._u32);
-					result.data.d3._u32 = swap_endianess(data.d3._u32);
-
-					return result;
+					return *this;
 				}
 			};
 
@@ -161,7 +166,7 @@ namespace rsx
 				return{ context.address_register(instruction.data.d0.addr_reg_sel_1), context.address_mask(instruction.data.d0.addr_swz), true, 4 };
 			}
 
-			expression_from<float_point_t<4>> swizzle_as_dst(expression_from<float_point_t<4>> arg) const
+			float_point_expr<4> swizzle_as_dst(float_point_expr<4> arg) const
 			{
 				std::string arg_mask;
 
@@ -170,7 +175,7 @@ namespace rsx
 					arg_mask += arg.mask[channel_to_index.at(channel)];
 				}
 
-				return expression_from<float_point_t<4>>(arg.text, arg_mask, arg.is_single, arg.base_count);
+				return float_point_expr<4>(arg.text, arg_mask, arg.is_single, arg.base_count);
 			}
 
 			float_point_expr<4> src(int index, bool is_swizzle_as_dst = false)
@@ -217,7 +222,7 @@ namespace rsx
 
 				if (is_abs)
 				{
-					result.assign(abs(result));
+					result.assign(base::abs(result));
 				}
 
 				if (src.neg)
@@ -289,16 +294,16 @@ namespace rsx
 				return{ context.condition(instruction.data.d0.cond_reg_sel_1).text, swizzle };
 			}
 
-			boolean_expr<4> compare(compare_function function, float_point_expr<4> a, float_point_expr<4> b)
+			boolean_expr<4> compare(typename base::compare_function function, float_point_expr<4> a, float_point_expr<4> b)
 			{
-				return custom_compare(function, (int)destination_swizzle().size(), a, b);
+				return base::custom_compare(function, (int)destination_swizzle().size(), a, b);
 			}
 
 			float_point_expr<4> apply_instruction_modifiers(float_point_expr<4> arg)
 			{
 				if (instruction.data.d0.staturate)
 				{
-					return clamp(arg, -1.0f, 1.0f);
+					return base::clamp(arg, -1.0f, 1.0f);
 				}
 
 				return arg;
@@ -314,20 +319,20 @@ namespace rsx
 				never = 0
 			};
 
-			writer_t set_dst(float_point_expr<4> arg)
+			typename base::writer_t set_dst(float_point_expr<4> arg)
 			{
 				auto dst_pair = destination_register();
 				bool has_dst = dst_pair.first;
 				bool has_result = has_dst || (instruction.data.d0.cond_update_enable_0 && instruction.data.d0.cond_update_enable_1);
 				float_point_expr<4> dest{ dst_pair.second };
 
-				writer_t result;
+				typename base::writer_t result;
 
 				if (instruction.data.d0.cond_test_enable && instruction.data.d0.cond != always)
 				{
 					if (!has_result)
 					{
-						result += warning("Extra condition skipped");
+						result += base::warning("Extra condition skipped");
 						result += arg;
 					}
 					else
@@ -394,7 +399,7 @@ namespace rsx
 								expression.assign(cond.with_mask(dst_swizzle) = expression);
 							}
 
-							result += if_(cond.swizzle(channel_to_index.at(entry.first)).call_operator<boolean_t<1>>(operation, zero), expression);
+							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).call_operator<boolean_t<1>>(operation, zero), expression);
 						}
 					}
 				}
@@ -418,7 +423,7 @@ namespace rsx
 				return result;
 			}
 
-			writer_t set_dst(expression_from<float_point_t<1>> arg)
+			typename base::writer_t set_dst(float_point_expr<1> arg)
 			{
 				if (destination_swizzle().size() != 1)
 				{
@@ -428,7 +433,7 @@ namespace rsx
 				return set_dst(float_point_expr<4>{ arg.to_string() });
 			}
 
-			writer_t set_dst(boolean_expr<4> arg)
+			typename base::writer_t set_dst(boolean_expr<4> arg)
 			{
 				std::string arg_string;
 
@@ -454,16 +459,16 @@ namespace rsx
 				any
 			};
 
-			compare_function execution_condition_function() const
+			typename base::compare_function execution_condition_function() const
 			{
 				switch (instruction.data.d0.cond)
 				{
-				case gt | eq: return compare_function::greater_equal;
-				case lt | eq: return compare_function::less_equal;
-				case lt | gt: return compare_function::not_equal;
-				case gt: return compare_function::greater;
-				case lt: return compare_function::less;
-				case eq: return compare_function::equal;
+				case gt | eq: return base::compare_function::greater_equal;
+				case lt | eq: return base::compare_function::less_equal;
+				case lt | gt: return base::compare_function::not_equal;
+				case gt: return base::compare_function::greater;
+				case lt: return base::compare_function::less;
+				case eq: return base::compare_function::equal;
 				}
 
 				throw;
@@ -487,34 +492,34 @@ namespace rsx
 					instruction.data.d0.mask_y == instruction.data.d0.mask_z &&
 					instruction.data.d0.mask_z == instruction.data.d0.mask_w)
 				{
-					return custom_compare(execution_condition_function(), 1, cond.x(), expression_from<float_point_t<1>>(0.0f));
+					return base::custom_compare(execution_condition_function(), 1, cond.x(), float_point_expr<1>(0.0f));
 				}
 
-				auto result = custom_compare(execution_condition_function(), 4, cond, float_point_t<4>::ctor(0.0f));
+				auto result = base::custom_compare(execution_condition_function(), 4, cond, float_point_t<4>::ctor(0.0f));
 
 				switch (operation)
 				{
-				case condition_operation::all: return all(result);
-				case condition_operation::any: return any(result);
+				case condition_operation::all: return base::all(result);
+				case condition_operation::any: return base::any(result);
 				}
 
 				throw;
 			}
 
 			template<typename ExprType>
-			expression_from<void_t> conditional(const ExprType& expr)
+			typename base::void_expr conditional(const ExprType& expr)
 			{
 				bool need_condition = false;
 
 				if (need_condition)
 				{
-					return if_(any(execution_condition(condition_operation::any)), expr);
+					return base::if_(base::any(execution_condition(condition_operation::any)), expr);
 				}
 
 				return expr;
 			}
 
-			expression_base_t decode_sca_instruction()
+			typename base::expression_base_t decode_sca_instruction()
 			{
 				is_vec = false;
 
@@ -522,47 +527,47 @@ namespace rsx
 				{
 				case sca_opcode::mov: return set_dst(src_swizzled_as_dst(2));
 				case sca_opcode::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2));
-				case sca_opcode::rcc: return set_dst(clamp(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2), 5.42101e-20f, 1.884467e19f));
-				case sca_opcode::rsq: return set_dst(rsqrt(src_swizzled_as_dst(2)));
-				case sca_opcode::exp: return set_dst(exp(src_swizzled_as_dst(2)));
-				case sca_opcode::log: return set_dst(log(src_swizzled_as_dst(2)));
+				case sca_opcode::rcc: return set_dst(base::clamp(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2), 5.42101e-20f, 1.884467e19f));
+				case sca_opcode::rsq: return set_dst(base::rsqrt(base::abs(src_swizzled_as_dst(2))));
+				case sca_opcode::exp: return set_dst(base::exp(src_swizzled_as_dst(2)));
+				case sca_opcode::log: return set_dst(base::log(src_swizzled_as_dst(2)));
 				case sca_opcode::lit:
 				{
 					auto t = src(2);
 
 					float_point_expr<1> z_value{ (t.x() > 0.0f).text };
-					z_value.assign("(" + z_value.text + " ? " + exp2(t.w() * log2(t.y())).text + " : 0.0)");
+					z_value.assign("(" + z_value.text + " ? " + base::exp2(t.w() * base::log2(t.y())).text + " : 0.0)");
 
 					return set_dst(swizzle_as_dst(float_point_t<4>::ctor(1.0f, t.x(), z_value, 1.0f)));
 				}
 				case sca_opcode::bra: break;
 				case sca_opcode::bri:
 				{
-					std::size_t from = writer.position;
+					std::size_t from = base::writer.position;
 					std::size_t to = address_value();
 
 					boolean_expr<1> condition{ execution_condition(condition_operation::all) };
 
 					if (to > from)
 					{
-						writer.before(from, "if (!(" + condition.to_string() + "))\n{\n");
-						writer.before(to, "}\n");
+						base::writer.before(from, "if (!(" + condition.to_string() + "))\n{\n");
+						base::writer.before(to, "}\n");
 					}
 					else
 					{
-						writer.before(from, "}\nwhile (" + condition.to_string() + ");\n");
-						writer.before(to, "do\n{\n");
+						base::writer.before(from, "}\nwhile (" + condition.to_string() + ");\n");
+						base::writer.before(to, "do\n{\n");
 					}
 				}
-				return "";
+				return{ "" };
 
 				case sca_opcode::cal: break;
 				case sca_opcode::cli: break;
-				case sca_opcode::ret: return conditional(void_expr{ "return" });
-				case sca_opcode::lg2: return set_dst(log2(src_swizzled_as_dst(2)));
-				case sca_opcode::ex2: return set_dst(exp2(src_swizzled_as_dst(2)));
-				case sca_opcode::sin: return set_dst(sin(src_swizzled_as_dst(2)));
-				case sca_opcode::cos: return set_dst(cos(src_swizzled_as_dst(2)));
+				case sca_opcode::ret: return conditional(typename base::void_expr{ "return" });
+				case sca_opcode::lg2: return set_dst(base::log2(src_swizzled_as_dst(2)));
+				case sca_opcode::ex2: return set_dst(base::exp2(src_swizzled_as_dst(2)));
+				case sca_opcode::sin: return set_dst(base::sin(src_swizzled_as_dst(2)));
+				case sca_opcode::cos: return set_dst(base::cos(src_swizzled_as_dst(2)));
 				case sca_opcode::brb: break;
 				case sca_opcode::clb: break;
 				case sca_opcode::psh: break;
@@ -571,10 +576,10 @@ namespace rsx
 					throw;
 				}
 
-				return unimplemented("sca " + sca_op_names[(int)instruction.data.d1.sca_opcode]);
+				return base::unimplemented("sca " + sca_op_names[(int)instruction.data.d1.sca_opcode]);
 			}
 
-			expression_base_t decode_vec_instruction()
+			typename base::expression_base_t decode_vec_instruction()
 			{
 				is_vec = true;
 
@@ -584,22 +589,22 @@ namespace rsx
 				case vec_opcode::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1));
 				case vec_opcode::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
 				case vec_opcode::mad: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1).without_scope() + src_swizzled_as_dst(2));
-				case vec_opcode::dp3: return set_dst(dot(src(0).xyz(), src(1).xyz()));
+				case vec_opcode::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
 				case vec_opcode::dph: break;
-				case vec_opcode::dp4: return set_dst(dot(src(0), src(1)));
+				case vec_opcode::dp4: return set_dst(base::dot(src(0), src(1)));
 				case vec_opcode::dst: break;
-				case vec_opcode::min: return set_dst(min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case vec_opcode::max: return set_dst(max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case vec_opcode::slt: return set_dst(compare(compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case vec_opcode::sge: return set_dst(compare(compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case vec_opcode::arl: return writer_t{} += address_register() = integer_t<1>::ctor(src(0).x());
-				case vec_opcode::frc: return set_dst(fract(src_swizzled_as_dst(0)));
-				case vec_opcode::flr: return set_dst(floor(src_swizzled_as_dst(0)));;
-				case vec_opcode::seq: return set_dst(compare(compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::arl: return typename base::writer_t{} += address_register() = integer_t<1>::ctor(src(0).x());
+				case vec_opcode::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
+				case vec_opcode::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
+				case vec_opcode::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case vec_opcode::sfl: return set_dst(0.0f);
-				case vec_opcode::sgt: return set_dst(compare(compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));;
-				case vec_opcode::sle: return set_dst(compare(compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case vec_opcode::sne: return set_dst(compare(compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));;
+				case vec_opcode::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case vec_opcode::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case vec_opcode::str: return set_dst(1.0f);
 				case vec_opcode::ssg: break;
 				case vec_opcode::txl: break;
@@ -608,17 +613,17 @@ namespace rsx
 					throw;
 				}
 
-				return unimplemented("vec " + vec_op_names[(int)instruction.data.d1.vec_opcode]);
+				return base::unimplemented("vec " + vec_op_names[(int)instruction.data.d1.vec_opcode]);
 			}
 
-			expression_base_t decode_instruction()
+			typename base::expression_base_t decode_instruction()
 			{
 				if (instruction.data.d1.sca_opcode == sca_opcode::nop && instruction.data.d1.vec_opcode == vec_opcode::nop)
 				{
-					return comment("NOP");
+					return base::comment("NOP");
 				}
 
-				writer_t result;
+				typename base::writer_t result;
 
 				if (instruction.data.d1.sca_opcode != sca_opcode::nop)
 				{
@@ -634,34 +639,36 @@ namespace rsx
 			}
 
 		public:
-			decompiled_program decompile(std::size_t offset, instruction_t *instructions)
+			decompiled_shader decompile(std::size_t offset, instruction_t *instructions)
 			{
-				for (std::size_t i = offset; i < 512; ++i, writer.next())
+				for (std::size_t i = offset; i < 512; ++i, base::writer.next())
 				{
 					instruction = instructions[i].unpack();
 
-					writer += decode_instruction();
+					base::writer += decode_instruction();
 
 					if (instruction.data.d3.end)
 						break;
 				}
 
 				context.program.entry_function = "func0";
-				context.program.code = "void func0()\n{\n" + writer.build() + "}\n";
+				base::writer.before(0, "void func0()\n{\n");
+				base::writer.after(base::writer.position, "}\n");
+				context.program.code = base::writer.finalize();
 
 				return context.program;
 			}
 		};
 
 		template<typename Language>
-		decompiled_program decompile(std::size_t offset, ucode_instr *instructions)
+		decompiled_shader decompile(std::size_t offset, ucode_instr *instructions)
 		{
-			return decompiler{}.decompile(offset, (decompiler::instruction_t*)instructions);
+			return decompiler<Language>{}.decompile(offset, (typename decompiler<Language>::instruction_t*)instructions);
 		}
 
-		decompiled_program decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang)
+		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang)
 		{
-			decompiled_program result;
+			decompiled_shader result;
 
 			switch (lang)
 			{

@@ -8,9 +8,9 @@ namespace rsx
 	const std::unordered_map<char, int> channel_to_index = { { 'x', 0 },{ 'y', 1 },{ 'z', 2 },{ 'w', 3 } };
 	const std::string mask = "xyzw";
 
-	complete_program finalize_program(const decompiled_program& program)
+	complete_shader finalize_program(const decompiled_shader& program)
 	{
-		complete_program result{ "#version 420\n\n" };
+		complete_shader result{ "#version 420\n\n" };
 
 		for (const constant_info& constant : program.constants)
 		{

@@ -196,7 +196,14 @@ namespace rsx
 			D1 d1;
 			D2 d2;
 			D3 d3;
+
+			bool end() const
+			{
+				return d3.end;
+			}
 		};
+
+		std::uint64_t hash(const ucode_instr *ucode);
 
 		extern const std::string input_registers_table[0x10];
 		extern const std::string sca_op_names[0x20];

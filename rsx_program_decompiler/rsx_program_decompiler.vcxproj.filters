@@ -3,4 +3,9 @@
   <ItemGroup>
     <ClCompile Include="rsx_program_decompiler.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CgBinaryProgram.h" />
+    <ClInclude Include="endianness.h" />
+    <ClInclude Include="elf64.h" />
+  </ItemGroup>
 </Project>

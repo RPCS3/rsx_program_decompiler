@@ -1,13 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rsx_program_decompiler_lib", "rsx_program_decompiler_lib\rsx_program_decompiler_lib.vcxproj", "{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rsx_program_decompiler", "rsx_program_decompiler\rsx_program_decompiler.vcxproj", "{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}"
 	ProjectSection(ProjectDependencies) = postProject
-		{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE} = {F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}
 		{97E17077-A21F-45EF-9C3A-73A0BC092D7E} = {97E17077-A21F-45EF-9C3A-73A0BC092D7E}
 		{7D73447B-3D2D-4DFE-BF62-57E644C1D09F} = {7D73447B-3D2D-4DFE-BF62-57E644C1D09F}
 	EndProjectSection
@@ -25,10 +22,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}.Debug|x64.ActiveCfg = Debug|x64
-		{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}.Debug|x64.Build.0 = Debug|x64
-		{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}.Release|x64.ActiveCfg = Release|x64
-		{F7AAD20D-BCFA-4B17-A178-BD8606B4E1FE}.Release|x64.Build.0 = Release|x64
 		{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}.Debug|x64.ActiveCfg = Debug|x64
 		{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}.Debug|x64.Build.0 = Debug|x64
 		{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}.Release|x64.ActiveCfg = Release|x64

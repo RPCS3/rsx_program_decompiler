@@ -45,6 +45,18 @@ int extract_ucode(const std::string& ipath, const std::string& opath)
 			std::vector<u8> buffer(input_size);
 			ifile_stream.read((char*)buffer.data(), buffer.size());
 			cg::CgBinaryProgram* program = (cg::CgBinaryProgram*)buffer.data();
+
+			//swap endianess
+			{
+				endianness::be<u32> *be_ptr = (endianness::be<u32> *)(buffer.data() + program->ucode);
+				u32 *ne_ptr = (u32 *)be_ptr;
+
+				for (u32 i = 0, end = program->ucodeSize; i < end; i += sizeof(u32))
+				{
+					*ne_ptr++ = *be_ptr++;
+				}
+			}
+
 			ofile_stream.write((char*)(buffer.data() + program->ucode), program->ucodeSize);
 
 			return 0;
@@ -196,7 +208,6 @@ LRESULT __stdcall WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		PostQuitMessage(0);
 		return 0;
 	default:
-		std::cout << '.';
 		return DefWindowProc(hwnd, msg, wp, lp);
 	}
 }
@@ -302,12 +313,12 @@ void test(const std::string &shader)
 #endif
 
 
-void print_info(const rsx::decompiled_program& program)
+void print_info(const rsx::decompiled_shader& program)
 {
 	//std::cout << "[RAW CODE]" << std::endl;
 	//std::cout << program.code;
 
-	rsx::complete_program complete_program = rsx::finalize_program(program);
+	rsx::complete_shader complete_program = rsx::finalize_program(program);
 	std::cout << "[COMPLETE CODE]" << std::endl;
 	std::cout << complete_program.code;
 
@@ -324,9 +335,9 @@ int main(int argc, char** argv)
 	extract_ucode("tmp.fp.cg", "tmp.fp.ucode");
 	extract_ucode("tmp.vp.cg", "tmp.vp.ucode");
 
-	rsx::decompiled_program program;
+	rsx::decompiled_shader program;
 
-	if (0)
+	if (1)
 	{
 		using namespace rsx::fragment_program;
 		std::vector<char> file = load_file("tmp.fp.ucode");

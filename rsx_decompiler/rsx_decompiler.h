@@ -92,7 +92,7 @@ namespace rsx
 		fragment
 	};
 
-	struct decompiled_program
+	struct decompiled_shader
 	{
 		program_type type;
 		decompile_language code_language;
@@ -105,28 +105,31 @@ namespace rsx
 
 		std::string entry_function;
 		std::string code;
+
+		std::uint64_t ucode_hash;
 	};
 
-	struct complete_program
+	struct complete_shader
 	{
 		std::string code;
+		std::uint64_t ucode_hash;
 	};
 
 	extern const std::string index_to_channel[4];
 	extern const std::unordered_map<char, int> channel_to_index;
 	extern const std::string mask;
 
-	complete_program finalize_program(const decompiled_program& program);
+	complete_shader finalize_program(const decompiled_shader& program);
 
 
 	namespace fragment_program
 	{
-		decompiled_program decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
+		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
 	}
 
 	namespace vertex_program
 	{
-		decompiled_program decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
+		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
 	}
 }
 

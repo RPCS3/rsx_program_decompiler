@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "clike_language.h"
 
 namespace shader_code

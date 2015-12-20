@@ -21,6 +21,11 @@
   <ItemGroup>
     <ClCompile Include="rsx_program_decompiler.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CgBinaryProgram.h" />
+    <ClInclude Include="elf64.h" />
+    <ClInclude Include="endianness.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9DAF4DF3-0E31-4C55-B367-6992C35F89CE}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -75,7 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
@@ -88,7 +93,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -98,7 +103,7 @@
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -108,7 +113,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>

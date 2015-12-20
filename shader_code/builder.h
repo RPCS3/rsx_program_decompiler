@@ -28,23 +28,10 @@ namespace shader_code
 			std::vector<std::string> code;
 			std::size_t position = 0;
 
-			writer_t()
-			{
-				fill_to(position);
-			}
+			writer_t();
+			writer_t(const std::string &string);
 
-			writer_t(const std::string &string) : writer_t()
-			{
-				lines(string);
-			}
-
-			void fill_to(std::size_t position)
-			{
-				if (code.size() <= position)
-				{
-					code.resize(position + 1);
-				}
-			}
+			void fill_to(std::size_t position);
 
 			template<typename... T>
 			void lines(const T&... exprs)
@@ -55,28 +42,9 @@ namespace shader_code
 				}
 			}
 
-			void lines(const std::string& string)
-			{
-				code[position] += string;
-			}
-
-			void before(std::size_t position, const std::string& string)
-			{
-				fill_to(position);
-				code[position] = string + code[position];
-			}
-
-			void after(std::size_t position, const std::string& string)
-			{
-				fill_to(position);
-				code[position] += string;
-			}
-
-			void lines(const writer_t& writer)
-			{
-				lines(writer.build());
-			}
-
+			void before(std::size_t position, const std::string& string);
+			void after(std::size_t position, const std::string& string);
+			void lines(const writer_t& writer);
 			void next();
 
 			template<typename T>
@@ -91,22 +59,10 @@ namespace shader_code
 				return{ build() };
 			}
 
-			std::string build() const
-			{
-				std::string result;
+			std::string finalize() const;
+			std::string build() const;
 
-				for (const std::string &entry : code)
-				{
-					result += entry;
-				}
-
-				return result;
-			}
-
-			void clear()
-			{
-				code.clear();
-			}
+			void clear();
 		};
 	};
 }

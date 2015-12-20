@@ -28,5 +28,21 @@ namespace rsx
 			"SEQ", "SFL", "SGT", "SLE", "SNE", "STR", "SSG", {},
 			{}, "TXL"
 		};
+
+		std::uint64_t hash(const ucode_instr *ucode)
+		{
+			std::uint64_t hash = 0xCBF29CE484222325ULL;
+
+			for (const ucode_instr *ptr = ucode; !ptr->end(); ++ptr)
+			{
+				hash ^= ptr->d0._u32 | (std::uint64_t(ptr->d1._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+
+				hash ^= ptr->d2._u32 | (std::uint64_t(ptr->d3._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+			}
+
+			return hash;
+		}
 	}
 }

@@ -156,11 +156,13 @@
   <ItemGroup>
     <ClCompile Include="builder.cpp" />
     <ClCompile Include="clike_language.cpp" />
+    <ClCompile Include="fmt.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="builder.h" />
     <ClInclude Include="clike_builder.h" />
     <ClInclude Include="clike_language.h" />
+    <ClInclude Include="fmt.h" />
     <ClInclude Include="glsl_builder.h" />
     <ClInclude Include="glsl_language.h" />
   </ItemGroup>

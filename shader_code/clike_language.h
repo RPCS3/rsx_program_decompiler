@@ -125,7 +125,7 @@ namespace shader_code
 		using expression_from = expression_t<Type::type, Type::count>;
 
 		template<type_class_t Type, int Count>
-		struct expression_helper_t : builder::expression_base_t
+		struct expression_helper_t : public builder::expression_base_t
 		{
 			using type = type_t<Type, Count>;
 
@@ -244,24 +244,29 @@ namespace shader_code
 		};
 
 		template<type_class_t Type, int Count>
-		struct expression_ctors_t : expression_helper_t<Type, Count>
+		struct expression_ctors_t : public expression_helper_t<Type, Count>
 		{
-			using expression_helper_t::expression_helper_t;
+			using base = expression_helper_t<Type, Count>;
+			using base::base;
+
+			expression_ctors_t() = default;
 		};
 
 		template<type_class_t Type>
-		struct expression_ctors_t<Type, 1> : expression_helper_t<Type, 1>
+		struct expression_ctors_t<Type, 1> : public expression_helper_t<Type, 1>
 		{
+			using base = expression_helper_t<Type, 1>;
+
 			expression_ctors_t(typename native_type_t<Type>::type value)
-				: expression_helper_t(native_type_t<Type>::to_string(value))
+				: base::expression_helper_t(native_type_t<Type>::to_string(value))
 			{
 			}
 
-			using expression_helper_t::expression_helper_t;
+			using base::base;
 		};
 
 #define _SWIZZLE_MASK(pos) mask.substr(pos, 1)
-#define _SWIZZLE_FUNC(Count, Name, ...) expression_t<Type, Count> Name() const { return swizzle(__VA_ARGS__); }
+#define _SWIZZLE_FUNC(Count, Name, ...) expression_t<Type, Count> Name() const { return base::swizzle(__VA_ARGS__); }
 
 #define SWIZZLE1(Xn, Xv) _SWIZZLE_FUNC(1, Xn, (Xv))
 #define SWIZZLE2(Xn, Xv, Yn, Yv) _SWIZZLE_FUNC(2, Xn##Yn, Xv, Yv)
@@ -362,15 +367,17 @@ namespace shader_code
 
 
 		template<type_class_t Type, int Count>
-		struct expression_swizzle_t : expression_ctors_t<Type, Count>
+		struct expression_swizzle_t : public expression_ctors_t<Type, Count>
 		{
-			using expression_ctors_t::expression_ctors_t;
+			using base = expression_ctors_t<Type, Count>;
+			using base::base;
 		};
 
 		template<type_class_t Type>
-		struct expression_swizzle_t<Type, 2> : expression_ctors_t<Type, 2>
+		struct expression_swizzle_t<Type, 2> : public expression_ctors_t<Type, 2>
 		{
-			using expression_ctors_t::expression_ctors_t;
+			using base = expression_ctors_t<Type, 2>;
+			using base::base;
 
 			SWIZZLE1(x, 0)
 				SWIZZLE1(y, 1)
@@ -386,9 +393,10 @@ namespace shader_code
 		};
 
 		template<type_class_t Type>
-		struct expression_swizzle_t<Type, 3> : expression_ctors_t<Type, 3>
+		struct expression_swizzle_t<Type, 3> : public expression_ctors_t<Type, 3>
 		{
-			using expression_ctors_t::expression_ctors_t;
+			using base = expression_ctors_t<Type, 3>;
+			using base::base;
 
 			SWIZZLE1(x, 0)
 				SWIZZLE1(y, 1)
@@ -408,9 +416,10 @@ namespace shader_code
 		};
 
 		template<type_class_t Type>
-		struct expression_swizzle_t<Type, 4> : expression_ctors_t<Type, 4>
+		struct expression_swizzle_t<Type, 4> : public expression_ctors_t<Type, 4>
 		{
-			using expression_ctors_t::expression_ctors_t;
+			using base = expression_ctors_t<Type, 4>;
+			using base::base;
 
 			SWIZZLE1(x, 0)
 				SWIZZLE1(y, 1)
@@ -434,116 +443,120 @@ namespace shader_code
 		};
 
 		template<type_class_t Type, int Count>
-		struct expression_t : expression_swizzle_t<Type, Count>
+		struct expression_t : public expression_swizzle_t<Type, Count>
 		{
-			using expression_swizzle_t::expression_swizzle_t;
+			using base = typename expression_swizzle_t<Type, Count>;
+			using base::base;
 
 			const expression_t operator -()
 			{
-				if (is_single && text[0] == '-')
-					return expression_t{ text.substr(1), mask };
+				if (this->is_single && this->text[0] == '-')
+					return expression_t{ this->text.substr(1), this->mask };
 
-				return call_operator("-");
+				return this->call_operator("-");
 			}
 
 			const expression_t operator-(const expression_t& rhs) const
 			{
 				if (rhs.is_single && rhs.text[0] == '-')
-					return call_operator("+", expression_t{ rhs.text.substr(1), rhs.mask });
+					return this->call_operator("+", expression_t{ rhs.text.substr(1), rhs.mask });
 
-				return call_operator("-", rhs);
+				return this->call_operator("-", rhs);
 			}
 			const expression_t operator+(const expression_t& rhs) const
 			{
 				if (rhs.is_single && rhs.text[0] == '-')
-					return call_operator("-", expression_t{ rhs.text.substr(1), rhs.mask });
+					return this->call_operator("-", expression_t{ rhs.text.substr(1), rhs.mask });
 
-				return call_operator("+", rhs);
+				return this->call_operator("+", rhs);
 			}
-			const expression_t operator/(const expression_t& rhs) const { return call_operator("/", rhs); }
-			const expression_t operator*(const expression_t& rhs) const { return call_operator("*", rhs); }
+			const expression_t operator/(const expression_t& rhs) const { return this->call_operator("/", rhs); }
+			const expression_t operator*(const expression_t& rhs) const { return this->call_operator("*", rhs); }
 
-			expression_t operator-=(const expression_t& rhs) { return call_operator("-=", rhs); }
-			expression_t operator+=(const expression_t& rhs) { return call_operator("+=", rhs); }
-			expression_t operator/=(const expression_t& rhs) { return call_operator("/=", rhs); }
-			expression_t operator*=(const expression_t& rhs) { return call_operator("*=", rhs); }
+			expression_t operator-=(const expression_t& rhs) { return this->call_operator("-=", rhs); }
+			expression_t operator+=(const expression_t& rhs) { return this->call_operator("+=", rhs); }
+			expression_t operator/=(const expression_t& rhs) { return this->call_operator("/=", rhs); }
+			expression_t operator*=(const expression_t& rhs) { return this->call_operator("*=", rhs); }
 
-			expression_t operator=(const expression_t& rhs) { return call_operator("=", rhs); }
+			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 
-			const expression_t operator-(const expression_t<Type, 1>& rhs) const { return call_operator("-", rhs); }
-			const expression_t operator+(const expression_t<Type, 1>& rhs) const { return call_operator("+", rhs); }
-			const expression_t operator/(const expression_t<Type, 1>& rhs) const { return call_operator("/", rhs); }
-			const expression_t operator*(const expression_t<Type, 1>& rhs) const { return call_operator("*", rhs); }
+			const expression_t operator-(const expression_t<Type, 1>& rhs) const { return this->call_operator("-", rhs); }
+			const expression_t operator+(const expression_t<Type, 1>& rhs) const { return this->call_operator("+", rhs); }
+			const expression_t operator/(const expression_t<Type, 1>& rhs) const { return this->call_operator("/", rhs); }
+			const expression_t operator*(const expression_t<Type, 1>& rhs) const { return this->call_operator("*", rhs); }
 
-			expression_t operator-=(const expression_t<Type, 1>& rhs) { return call_operator("-=", rhs); }
-			expression_t operator+=(const expression_t<Type, 1>& rhs) { return call_operator("+=", rhs); }
-			expression_t operator/=(const expression_t<Type, 1>& rhs) { return call_operator("/=", rhs); }
-			expression_t operator*=(const expression_t<Type, 1>& rhs) { return call_operator("*=", rhs); }
+			expression_t operator-=(const expression_t<Type, 1>& rhs) { return this->call_operator("-=", rhs); }
+			expression_t operator+=(const expression_t<Type, 1>& rhs) { return this->call_operator("+=", rhs); }
+			expression_t operator/=(const expression_t<Type, 1>& rhs) { return this->call_operator("/=", rhs); }
+			expression_t operator*=(const expression_t<Type, 1>& rhs) { return this->call_operator("*=", rhs); }
 		};
 
 		template<>
-		struct expression_t<type_class_t::type_bool, 1> : expression_swizzle_t<type_class_t::type_bool, 1>
+		struct expression_t<type_class_t::type_bool, 1> : public expression_swizzle_t<type_class_t::type_bool, 1>
 		{
-			using expression_swizzle_t::expression_swizzle_t;
+			using base = expression_swizzle_t<type_class_t::type_bool, 1>;
+			using base::base;
 
-			expression_t operator=(const expression_t& rhs) { return call_operator("=", rhs); }
+			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 
-			const expression_from<boolean_t<1>> operator!() const { return call_operator<boolean_t<1>>("!"); }
-			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return call_operator<boolean_t<1>>("==", rhs); }
-			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return call_operator<boolean_t<1>>("!=", rhs); }
+			const expression_from<boolean_t<1>> operator!() const { return this->call_operator<boolean_t<1>>("!"); }
+			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("==", rhs); }
+			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("!=", rhs); }
 		};
 
 		template<int Count>
-		struct expression_t<type_class_t::type_bool, Count> : expression_swizzle_t<type_class_t::type_bool, Count>
+		struct expression_t<type_class_t::type_bool, Count> : public expression_swizzle_t<type_class_t::type_bool, Count>
 		{
-			using expression_swizzle_t::expression_swizzle_t;
+			using base = expression_swizzle_t<type_class_t::type_bool, Count>;
+			using base::base;
 
-			expression_t operator=(const expression_t& rhs) { return call_operator("=", rhs); }
+			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 		};
 
 		template<type_class_t Type>
-		struct expression_t<Type, 1> : expression_swizzle_t<Type, 1>
+		struct expression_t<Type, 1> : public expression_swizzle_t<Type, 1>
 		{
-			using expression_swizzle_t::expression_swizzle_t;
+			using base = expression_swizzle_t<Type, 1>;
+			using base::base;
 
 			const expression_t operator -()
 			{
-				if (is_single && text[0] == '-')
-					return expression_t{ text.substr(1), mask };
+				if (this->is_single && this->text[0] == '-')
+					return expression_t{ this->text.substr(1), mask };
 
-				return call_operator("-");
+				return this->call_operator("-");
 			}
 
 			const expression_t operator-(const expression_t& rhs) const
 			{
 				if (rhs.is_single && rhs.text[0] == '-')
-					return call_operator("+", expression_t{ rhs.text.substr(1), rhs.mask });
+					return this->call_operator("+", expression_t{ rhs.text.substr(1), rhs.mask });
 
-				return call_operator("-", rhs);
+				return this->call_operator("-", rhs);
 			}
 			const expression_t operator+(const expression_t& rhs) const
 			{
 				if (rhs.is_single && rhs.text[0] == '-')
-					return call_operator("-", expression_t{ rhs.text.substr(1), rhs.mask });
+					return this->call_operator("-", expression_t{ rhs.text.substr(1), rhs.mask });
 
-				return call_operator("+", rhs);
+				return this->call_operator("+", rhs);
 			}
-			template<int Count> const expression_t<Type, Count> operator/(const expression_t<Type, Count>& rhs) const { return call_operator<type_t<Type, Count>>("/", rhs); }
-			template<int Count> const expression_t<Type, Count> operator*(const expression_t<Type, Count>& rhs) const { return call_operator<type_t<Type, Count>>("*", rhs); }
+			template<int Count> const expression_t<Type, Count> operator/(const expression_t<Type, Count>& rhs) const { return this->call_operator<type_t<Type, Count>>("/", rhs); }
+			template<int Count> const expression_t<Type, Count> operator*(const expression_t<Type, Count>& rhs) const { return this->call_operator<type_t<Type, Count>>("*", rhs); }
 
-			expression_t operator=(const expression_t& rhs) { return call_operator("=", rhs); }
+			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 
-			expression_t operator-=(const expression_t& rhs) { return call_operator("-=", rhs); }
-			expression_t operator+=(const expression_t& rhs) { return call_operator("+=", rhs); }
-			expression_t operator/=(const expression_t& rhs) { return call_operator("/=", rhs); }
-			expression_t operator*=(const expression_t& rhs) { return call_operator("*=", rhs); }
+			expression_t operator-=(const expression_t& rhs) { return this->call_operator("-=", rhs); }
+			expression_t operator+=(const expression_t& rhs) { return this->call_operator("+=", rhs); }
+			expression_t operator/=(const expression_t& rhs) { return this->call_operator("/=", rhs); }
+			expression_t operator*=(const expression_t& rhs) { return this->call_operator("*=", rhs); }
 
-			const expression_from<boolean_t<1>> operator >(const expression_t& rhs) const { return call_operator<boolean_t<1>>(">", rhs); }
-			const expression_from<boolean_t<1>> operator >=(const expression_t& rhs) const { return call_operator<boolean_t<1>>(">=", rhs); }
-			const expression_from<boolean_t<1>> operator <(const expression_t& rhs) const { return call_operator<boolean_t<1>>("<", rhs); }
-			const expression_from<boolean_t<1>> operator <=(const expression_t& rhs) const { return call_operator<boolean_t<1>>("<=", rhs); }
-			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return call_operator<boolean_t<1>>("==", rhs); }
-			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return call_operator<boolean_t<1>>("!=", rhs); }
+			const expression_from<boolean_t<1>> operator >(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>(">", rhs); }
+			const expression_from<boolean_t<1>> operator >=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>(">=", rhs); }
+			const expression_from<boolean_t<1>> operator <(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("<", rhs); }
+			const expression_from<boolean_t<1>> operator <=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("<=", rhs); }
+			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("==", rhs); }
+			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("!=", rhs); }
 		};
 
 		template<typename Type>

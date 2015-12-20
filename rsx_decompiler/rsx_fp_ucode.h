@@ -213,9 +213,25 @@ namespace rsx
 			SRC0 src0;
 			SRC1 src1;
 			SRC2 src2;
+
+			static bool is_constant(u32 data)
+			{
+				return src_reg_type_t((data >> 8) & 0x3) == src_reg_type_t::constant;
+			}
+
+			bool has_constant() const
+			{
+				return is_constant(src0._u32) || is_constant(src1._u32) || is_constant(src2._u32);
+			}
+
+			bool end() const
+			{
+				return (dst._u32 >> 8) & 0x1;
+			}
 		};
 
-		extern const std::string input_attr_regs[16];
+		std::uint64_t hash(const ucode_instr *ucode);
+
 		extern const std::string instructions_names[128];
 		extern const std::string input_attrib_map[16];
 	}
