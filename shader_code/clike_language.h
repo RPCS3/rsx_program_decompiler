@@ -1,5 +1,6 @@
 #pragma once
 #include "builder.h"
+#include "fmt.h"
 
 namespace shader_code
 {
@@ -47,8 +48,21 @@ namespace shader_code
 		};
 
 		template<>
-		struct native_type_t<type_class_t::type_float> : native_type_base_t<float>
+		struct native_type_t<type_class_t::type_float>
 		{
+			using type = float;
+
+			static std::string to_string(type value)
+			{
+				std::string result = fmt::format("%.8g", value);
+
+				if (result.find('.') == result.npos && result.find('e') == result.npos)
+				{
+					return result + ".0";
+				}
+
+				return result;
+			}
 		};
 
 		template<>
