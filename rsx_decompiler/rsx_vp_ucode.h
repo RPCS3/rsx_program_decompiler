@@ -7,7 +7,7 @@ namespace rsx
 	namespace vertex_program
 	{
 		using u32 = std::uint32_t;
-		enum class sca_opcode
+		enum class sca_opcode : u32
 		{
 			nop = 0x00,
 			mov = 0x01,
@@ -32,7 +32,7 @@ namespace rsx
 			pop = 0x14
 		};
 
-		enum class vec_opcode
+		enum class vec_opcode : u32
 		{
 			nop = 0x00,
 			mov = 0x01,
@@ -58,6 +58,13 @@ namespace rsx
 			str = 0x15,
 			ssg = 0x16,
 			txl = 0x19
+		};
+
+		enum class src_register_type : u32
+		{
+			temporary = 1,
+			input = 2,
+			constant = 3
 		};
 
 		union D0
@@ -173,7 +180,7 @@ namespace rsx
 
 			struct
 			{
-				u32 reg_type : 2;
+				src_register_type register_type : 2;
 				u32 tmp_src : 6;
 				u32 swz_w : 2;
 				u32 swz_z : 2;
@@ -191,6 +198,7 @@ namespace rsx
 			D3 d3;
 		};
 
+		extern const std::string input_registers_table[0x10];
 		extern const std::string sca_op_names[0x20];
 		extern const std::string vec_op_names[0x20];
 	}

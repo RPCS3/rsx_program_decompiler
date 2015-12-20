@@ -4,6 +4,16 @@ namespace rsx
 {
 	namespace vertex_program
 	{
+		const std::string input_registers_table[0x10] =
+		{
+			"in_pos", "in_weight", "in_normal",
+			"in_diff_color", "in_spec_color",
+			"in_fog",
+			"in_point_size", "in_7",
+			"in_tc0", "in_tc1", "in_tc2", "in_tc3",
+			"in_tc4", "in_tc5", "in_tc6", "in_tc7"
+		};
+
 		const std::string sca_op_names[0x20] =
 		{
 			"NOP", "MOV", "RCP", "RCC", "RSQ", "EXP", "LOG",

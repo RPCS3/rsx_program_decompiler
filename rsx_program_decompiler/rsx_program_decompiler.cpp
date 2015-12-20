@@ -328,16 +328,18 @@ int main(int argc, char** argv)
 
 	if (0)
 	{
+		using namespace rsx::fragment_program;
 		std::vector<char> file = load_file("tmp.fp.ucode");
 
-		rsx::fragment_program::ucode_instr *instructions = (rsx::fragment_program::ucode_instr *)file.data();
-		program = rsx::fragment_program::decompile(0, instructions, rsx::decompile_language::glsl);
+		ucode_instr *instructions = (ucode_instr *)file.data();
+		program = decompile(0, instructions, rsx::decompile_language::glsl);
 	}
 	else
 	{
+		using namespace rsx::vertex_program;
 		std::vector<char> file = load_file("tmp.vp.ucode");
 
-		rsx::vertex_program::ucode_instr *instructions = (rsx::vertex_program::ucode_instr *)file.data();
+		ucode_instr *instructions = (ucode_instr *)file.data();
 		program = rsx::vertex_program::decompile(0, instructions, rsx::decompile_language::glsl);
 	}
 

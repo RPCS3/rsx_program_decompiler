@@ -254,6 +254,18 @@ namespace shader_code
 		};
 
 		template<>
+		struct function_name_t<clike_language::function_class_t::function_exp>
+		{
+			static constexpr char *name = "exp";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_log>
+		{
+			static constexpr char *name = "log";
+		};
+
+		template<>
 		struct function_name_t<clike_language::function_class_t::function_exp2>
 		{
 			static constexpr char *name = "exp2";

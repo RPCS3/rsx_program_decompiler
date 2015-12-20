@@ -88,6 +88,8 @@ namespace shader_code
 			function_abs,
 			function_fract,
 			function_floor,
+			function_exp,
+			function_log,
 			function_exp2,
 			function_log2,
 			function_pow,
@@ -130,6 +132,8 @@ namespace shader_code
 			std::string mask;
 			bool is_single;
 			int base_count = Count;
+
+			expression_helper_t() = default;
 
 			expression_helper_t(const std::string& text, bool is_single = true, int base_count = Count)
 				: expression_base_t{ text }

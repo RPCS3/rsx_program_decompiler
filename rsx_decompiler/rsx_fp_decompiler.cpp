@@ -267,8 +267,6 @@ namespace rsx
 
 			expression_from<boolean_t<1>> execution_condition(condition_operation operation)
 			{
-				auto cond = execution_condition_register();
-
 				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_eq && instruction.data.src0.exec_if_gr)
 				{
 					return true;
@@ -278,6 +276,8 @@ namespace rsx
 				{
 					return false;
 				}
+
+				auto cond = execution_condition_register();
 
 				if (instruction.data.src0.cond_swizzle_x == instruction.data.src0.cond_swizzle_y &&
 					instruction.data.src0.cond_swizzle_y == instruction.data.src0.cond_swizzle_z &&
@@ -417,7 +417,7 @@ namespace rsx
 					if (!instruction.data.dst.set_cond && instruction.data.dst.no_dest)
 					{
 						//condition must be already handled in instruction semantic (IFE, LOOP, etc)
-						result += comment("WARNING: extra condition test skipped");
+						result += warning("extra condition test skipped");
 						result += arg;
 					}
 					else
@@ -432,7 +432,7 @@ namespace rsx
 						if (instruction.data.dst.mask_z) condition_map[cond.mask[2]].push_back({ 2, channel_index++ });
 						if (instruction.data.dst.mask_w) condition_map[cond.mask[3]].push_back({ 3, channel_index });
 
-						auto src = arg;
+						auto src = apply_instruction_modifiers(arg);
 
 						if (flags & disable_swizzle_as_dst)
 						{

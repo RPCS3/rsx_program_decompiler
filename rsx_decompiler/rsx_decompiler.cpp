@@ -21,7 +21,23 @@ namespace rsx
 
 		for (const register_info& temporary : program.temporary_registers)
 		{
-			result.code += "vec4 " + temporary.name + " = vec4(0.0);\n";
+			std::string type;
+			switch (temporary.type)
+			{
+			case register_type::half_float_point:
+			case register_type::single_float_point:
+				type += "vec4";
+				break;
+
+			case register_type::integer:
+				type += "ivec4";
+				break;
+
+			default:
+				throw;
+			}
+
+			result.code += type + " " + temporary.name + " = " + type + "(0);\n";
 		}
 
 		result.code += "\n";
@@ -31,12 +47,30 @@ namespace rsx
 			result.code += "uniform sampler2D " + texture.name + ";\n";
 		}
 
-		for (std::size_t index = 0; index < std::size(rsx::fragment_program::input_attrib_map); ++index)
+		switch (program.type)
 		{
-			if (program.input_attributes & (1 << index))
+		case program_type::fragment:
+			for (std::size_t index = 0; index < std::size(rsx::fragment_program::input_attrib_map); ++index)
 			{
-				result.code += "in vec4 " + rsx::fragment_program::input_attrib_map[index] + ";\n";
+				if (program.input_attributes & (1 << index))
+				{
+					result.code += "in vec4 " + rsx::fragment_program::input_attrib_map[index] + ";\n";
+				}
 			}
+			break;
+
+		case program_type::vertex:
+			for (std::size_t index = 0; index < std::size(rsx::vertex_program::input_registers_table); ++index)
+			{
+				if (program.input_attributes & (1 << index))
+				{
+					result.code += "in vec4 " + rsx::vertex_program::input_registers_table[index] + ";\n";
+				}
+			}
+			break;
+
+		default:
+			throw;
 		}
 
 		result.code += "\n";

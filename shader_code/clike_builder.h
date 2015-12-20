@@ -153,6 +153,11 @@ namespace shader_code
 		template<size_t Count>
 		using float_point_t = typename type_t<type_class_t::type_float, Count>;
 
+		using void_expr = expression_from<void_t>;
+		template<int Count> using float_point_expr = expression_from<float_point_t<Count>>;
+		template<int Count> using boolean_expr = expression_from<boolean_t<Count>>;
+		template<int Count> using integer_expr = expression_from<integer_t<Count>>;
+
 		static expression_from<float_point_t<4>> texture(const expression_from<sampler1D_t>& texture, const expression_from<float_point_t<1>>& coord)
 		{
 			return function_t<float_point_t<4>, language::function_name_t<function_class_t::function_texture>>::invoke(texture, coord);
@@ -306,6 +311,16 @@ namespace shader_code
 		static expression_from<float_point_t<Count>> pow(const expression_t<type_class_t::type_float, Count>& a, const expression_t<type_class_t::type_float, Count>& b)
 		{
 			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_pow>>::invoke(a, b);
+		}
+		template<int Count>
+		static expression_from<float_point_t<Count>> exp(const expression_t<type_class_t::type_float, Count>& arg)
+		{
+			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_exp>>::invoke(arg);
+		}
+		template<int Count>
+		static expression_from<float_point_t<Count>> log(const expression_t<type_class_t::type_float, Count>& arg)
+		{
+			return function_t<float_point_t<Count>, language::function_name_t<function_class_t::function_log>>::invoke(arg);
 		}
 		template<int Count>
 		static expression_from<float_point_t<Count>> exp2(const expression_t<type_class_t::type_float, Count>& arg)
