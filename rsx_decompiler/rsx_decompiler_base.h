@@ -25,8 +25,8 @@ namespace rsx
 		};
 
 		template<clike_language::type_class_t Type, int Count>
-		static typename base::boolean_expr<Count> single_compare_function(compare_function function,
-			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
+		static typename base::template boolean_expr<Count> single_compare_function(compare_function function,
+			typename base::template expression_t<Type, Count> a, typename base::template expression_t<Type, Count> b)
 		{
 			std::string operator_string;
 
@@ -47,8 +47,8 @@ namespace rsx
 		}
 
 		template<clike_language::type_class_t Type, int Count>
-		static typename base::boolean_expr<Count> vector_compare_function(compare_function function,
-			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
+		static typename base::template boolean_expr<Count> vector_compare_function(compare_function function,
+			typename base::template expression_t<Type, Count> a, typename base::template expression_t<Type, Count> b)
 		{
 			switch (function)
 			{
@@ -64,8 +64,8 @@ namespace rsx
 		}
 
 		template<clike_language::type_class_t Type, int Count>
-		static typename base::boolean_expr<Count> custom_compare(compare_function function, int channel_count,
-			typename base::expression_t<Type, Count> a, typename base::expression_t<Type, Count> b)
+		static typename base::template boolean_expr<Count> custom_compare(compare_function function, int channel_count,
+			typename base::template expression_t<Type, Count> a, typename base::template expression_t<Type, Count> b)
 		{
 			if (channel_count == 1)
 			{

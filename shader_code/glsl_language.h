@@ -3,7 +3,7 @@
 
 namespace shader_code
 {
-	struct glsl_language
+	namespace glsl_language_impl
 	{
 		template<clike_language::type_class_t Type, int Count>
 		struct type_name_t;
@@ -288,5 +288,14 @@ namespace shader_code
 		{
 			static constexpr char *name = "dFdy";
 		};
+	}
+
+	struct glsl_language
+	{
+		template<clike_language::type_class_t Type, int Count>
+		using type_name_t = glsl_language_impl::type_name_t<Type, Count>;
+
+		template<clike_language::function_class_t Function>
+		using function_name_t = glsl_language_impl::function_name_t<Function>;
 	};
 }

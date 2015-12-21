@@ -13,22 +13,22 @@ namespace rsx
 			using base = decompiler_base<Language>;
 
 			template<int Count>
-			using boolean_expr = typename base::boolean_expr<Count>;
+			using boolean_expr = typename base::template boolean_expr<Count>;
 
 			template<int Count>
-			using float_point_expr = typename base::float_point_expr<Count>;
+			using float_point_expr = typename base::template float_point_expr<Count>;
 
 			template<int Count>
-			using integer_expr = typename base::integer_expr<Count>;
+			using integer_expr = typename base::template integer_expr<Count>;
 
 			template<int Count>
-			using float_point_t = typename base::float_point_t<Count>;
+			using float_point_t = typename base::template float_point_t<Count>;
 
 			template<int Count>
-			using boolean_t = typename base::boolean_t<Count>;
+			using boolean_t = typename base::template boolean_t<Count>;
 
 			template<int Count>
-			using integer_t = typename base::integer_t<Count>;
+			using integer_t = typename base::template integer_t<Count>;
 
 			struct context_t
 			{
@@ -402,7 +402,7 @@ namespace rsx
 								expression.assign(cond.with_mask(dst_swizzle) = expression);
 							}
 
-							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).call_operator<boolean_t<1>>(operation, zero), expression);
+							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).template call_operator<boolean_t<1>>(operation, zero), expression);
 						}
 					}
 				}
@@ -462,7 +462,7 @@ namespace rsx
 				any
 			};
 
-			typename base::compare_function execution_condition_function(u32 condition = instruction.data.d0.cond) const
+			typename base::compare_function execution_condition_function(u32 condition) const
 			{
 				switch (condition)
 				{

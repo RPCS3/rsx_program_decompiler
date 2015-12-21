@@ -1,6 +1,7 @@
 ﻿#include "rsx_decompiler.h"
 #include <unordered_map>
 #include <string>
+#include <iterator>
 
 namespace rsx
 {
@@ -50,7 +51,7 @@ namespace rsx
 		switch (program.type)
 		{
 		case program_type::fragment:
-			for (std::size_t index = 0; index < std::size(rsx::fragment_program::input_attrib_map); ++index)
+			for (std::size_t index = 0; index < 16; ++index)
 			{
 				if (program.input_attributes & (1 << index))
 				{
@@ -60,7 +61,7 @@ namespace rsx
 			break;
 
 		case program_type::vertex:
-			for (std::size_t index = 0; index < std::size(rsx::vertex_program::input_registers_table); ++index)
+			for (std::size_t index = 0; index < 16; ++index)
 			{
 				if (program.input_attributes & (1 << index))
 				{

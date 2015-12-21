@@ -13,16 +13,16 @@ namespace rsx
 			using base = decompiler_base<Language>;
 
 			template<int Count>
-			using boolean_expr = typename base::boolean_expr<Count>;
+			using boolean_expr = typename base::template boolean_expr<Count>;
 
 			template<int Count>
-			using float_point_expr = typename base::float_point_expr<Count>;
+			using float_point_expr = typename base::template float_point_expr<Count>;
 
 			template<int Count>
-			using float_point_t = typename base::float_point_t<Count>;
+			using float_point_t = typename base::template float_point_t<Count>;
 
 			template<int Count>
-			using boolean_t = typename base::boolean_t<Count>;
+			using boolean_t = typename base::template boolean_t<Count>;
 
 			struct context_t
 			{
@@ -30,7 +30,7 @@ namespace rsx
 				bool is_next_is_constant;
 				u32 offset;
 
-				typename base::float_point_expr<4> constant()
+				float_point_expr<4> constant()
 				{
 					constant_info info;
 					info.id = offset + sizeof(instruction_t);
@@ -41,7 +41,7 @@ namespace rsx
 					return info.name;
 				}
 
-				typename base::float_point_expr<4> temporary(bool is_fp16, int index)
+				float_point_expr<4> temporary(bool is_fp16, int index)
 				{
 					register_info info;
 					info.id = index;
@@ -51,7 +51,7 @@ namespace rsx
 					return info.name;
 				}
 
-				typename base::float_point_expr<4> condition(int index)
+				float_point_expr<4> condition(int index)
 				{
 					register_info info;
 					info.id = index;
@@ -62,7 +62,7 @@ namespace rsx
 					return info.name;
 				}
 
-				typename base::float_point_expr<4> input(int index)
+				float_point_expr<4> input(int index)
 				{
 					program.input_attributes |= (1 << index);
 					return input_attrib_map[index];
@@ -121,7 +121,7 @@ namespace rsx
 					return result;
 				}
 
-				typename base::float_point_expr<4> swizzle_as_dst(typename base::float_point_expr<4> arg) const
+				float_point_expr<4> swizzle_as_dst(float_point_expr<4> arg) const
 				{
 					std::string arg_mask;
 
@@ -133,7 +133,7 @@ namespace rsx
 					return float_point_expr<4>(arg.text, arg_mask, arg.is_single, arg.base_count);
 				}
 
-				typename base::float_point_expr<4> src(context_t& context, int index, bool is_swizzle_as_dst = false) const
+				float_point_expr<4> src(context_t& context, int index, bool is_swizzle_as_dst = false) const
 				{
 					src_t src;
 
@@ -156,7 +156,7 @@ namespace rsx
 						throw;
 					};
 
-					typename base::float_point_expr<4> result = get_variable(src);
+					float_point_expr<4> result = get_variable(src);
 
 					result.assign(result.swizzle(src.swizzle_x, src.swizzle_y, src.swizzle_z, src.swizzle_w));
 
@@ -190,7 +190,7 @@ namespace rsx
 					return swizzle;
 				}
 
-				typename base::float_point_expr<4> destination(context_t& context) const
+				float_point_expr<4> destination(context_t& context) const
 				{
 					if (data.dst.no_dest)
 					{
@@ -206,22 +206,22 @@ namespace rsx
 			instruction_t instruction;
 			context_t context;
 
-			typename base::float_point_expr<4> src(int index, bool is_swizzle_as_dst = false)
+			float_point_expr<4> src(int index, bool is_swizzle_as_dst = false)
 			{
 				return instruction.src(context, index, is_swizzle_as_dst);
 			}
 
-			typename base::float_point_expr<4> src_swizzled_as_dst(int index)
+			float_point_expr<4> src_swizzled_as_dst(int index)
 			{
 				return src(index, instruction.data.dst.set_cond || !instruction.data.dst.no_dest);
 			}
 
-			typename base::float_point_expr<4> modify_condition_register()
+			float_point_expr<4> modify_condition_register()
 			{
 				return context.condition(instruction.data.src0.cond_mod_reg_index);
 			}
 
-			typename base::float_point_expr<4> execution_condition_register()
+			float_point_expr<4> execution_condition_register()
 			{
 				std::string swizzle;
 
@@ -270,7 +270,7 @@ namespace rsx
 				throw;
 			}
 
-			typename base::boolean_expr<1> execution_condition(condition_operation operation)
+			boolean_expr<1> execution_condition(condition_operation operation)
 			{
 				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_eq && instruction.data.src0.exec_if_gr)
 				{
@@ -302,12 +302,12 @@ namespace rsx
 				throw;
 			}
 
-			typename boolean_expr<4> compare(typename base::compare_function function, float_point_expr<4> a, float_point_expr<4> b)
+			boolean_expr<4> compare(typename base::compare_function function, float_point_expr<4> a, float_point_expr<4> b)
 			{
 				return base::custom_compare(function, (int)instruction.destination_swizzle().size(), a, b);
 			}
 
-			typename base::expression_from<typename base::sampler2D_t> tex()
+			typename base::template expression_from<typename base::sampler2D_t> tex()
 			{
 				return{ "unk_tex" };
 			}
@@ -381,7 +381,7 @@ namespace rsx
 				return arg;
 			}
 
-			builder::writer_t set_dst(const typename base::float_point_expr<4>& arg, u32 flags = none)
+			builder::writer_t set_dst(const float_point_expr<4>& arg, u32 flags = none)
 			{
 				builder::writer_t result;
 
@@ -427,7 +427,7 @@ namespace rsx
 					}
 					else
 					{
-						static const typename base::float_point_expr<1> zero(0.0f);
+						static const float_point_expr<1> zero(0.0f);
 
 						std::map<char, std::vector<std::pair<int, int>>> condition_map;
 
@@ -458,7 +458,7 @@ namespace rsx
 								dst_swizzle += dest.swizzle(channels.second).mask[0];
 							}
 
-							typename base::float_point_expr<4> expression{ src.with_mask(src_swizzle) };
+							float_point_expr<4> expression{ src.with_mask(src_swizzle) };
 
 							if (!instruction.data.dst.no_dest)
 							{
@@ -470,7 +470,7 @@ namespace rsx
 								expression.assign(cond.with_mask(dst_swizzle) = expression);
 							}
 
-							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).call_operator<typename base::boolean_t<1>>(operation, zero), expression);
+							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).template call_operator<boolean_t<1>>(operation, zero), expression);
 						}
 					}
 				}
@@ -504,7 +504,7 @@ namespace rsx
 				return result;
 			}
 
-			builder::writer_t set_dst(const typename base::float_point_expr<1>& arg, u32 flags = none)
+			builder::writer_t set_dst(const float_point_expr<1>& arg, u32 flags = none)
 			{
 				if (instruction.destination_swizzle().size() != 1)
 				{

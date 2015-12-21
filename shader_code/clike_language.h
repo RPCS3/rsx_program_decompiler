@@ -4,7 +4,7 @@
 
 namespace shader_code
 {
-	struct clike_language
+	namespace clike_language_impl
 	{
 		enum class type_class_t
 		{
@@ -17,6 +17,27 @@ namespace shader_code
 			type_sampler3D
 		};
 
+		template<type_class_t Type, int Count>
+		using type_t = builder::type_t<type_class_t, Type, Count>;
+
+		template<size_t Count>
+		using boolean_t = type_t<type_class_t::type_bool, Count>;
+
+		template<size_t Count>
+		using integer_t = type_t<type_class_t::type_int, Count>;
+
+		template<size_t Count>
+		using float_point_t = type_t<type_class_t::type_float, Count>;
+
+
+		using sampler1D_t = type_t<type_class_t::type_sampler1D, 1>;
+		using sampler2D_t = type_t<type_class_t::type_sampler2D, 1>;
+		using sampler3D_t = type_t<type_class_t::type_sampler3D, 1>;
+		using void_t = type_t<type_class_t::type_void, 0>;
+
+		template<type_class_t Type>
+		struct native_type_t;
+
 		template<typename Type>
 		struct native_type_base_t
 		{
@@ -27,9 +48,6 @@ namespace shader_code
 				return std::to_string(value);
 			}
 		};
-
-		template<type_class_t Type>
-		struct native_type_t;
 
 		template<>
 		struct native_type_t<type_class_t::type_bool>
@@ -81,62 +99,7 @@ namespace shader_code
 		};
 
 		template<type_class_t Type, int Count>
-		using type_t = builder::type_t<type_class_t, Type, Count>;
-
-		template<size_t Count>
-		using boolean_t = typename type_t<type_class_t::type_bool, Count>;
-
-		template<size_t Count>
-		using integer_t = typename type_t<type_class_t::type_int, Count>;
-
-		template<size_t Count>
-		using float_point_t = typename type_t<type_class_t::type_float, Count>;
-
-		using sampler1D_t = type_t<type_class_t::type_sampler1D, 1>;
-		using sampler2D_t = type_t<type_class_t::type_sampler2D, 1>;
-		using sampler3D_t = type_t<type_class_t::type_sampler3D, 1>;
-		using void_t = type_t<type_class_t::type_void, 0>;
-
-		enum function_class_t
-		{
-			function_abs,
-			function_fract,
-			function_floor,
-			function_exp,
-			function_log,
-			function_exp2,
-			function_log2,
-			function_pow,
-			function_texture,
-			function_texture_lod,
-			function_texture_bias,
-			function_texture_grad,
-			function_normalize,
-			function_any,
-			function_all,
-			function_dot,
-			function_min,
-			function_max,
-			function_greater,
-			function_less,
-			function_equal,
-			function_greater_equal,
-			function_less_equal,
-			function_not_equal,
-			function_sin,
-			function_cos,
-			function_clamp,
-			function_sqrt,
-			function_rsqrt,
-			function_ddx,
-			function_ddy
-		};
-
-		template<type_class_t Type, int Count>
 		struct expression_t;
-
-		template<typename Type>
-		using expression_from = expression_t<Type::type, Type::count>;
 
 		template<type_class_t Type, int Count>
 		struct expression_helper_t : public builder::expression_base_t
@@ -151,22 +114,22 @@ namespace shader_code
 
 			expression_helper_t(const std::string& text, bool is_single = true, int base_count = Count)
 				: expression_base_t{ text }
-				, is_single(is_single)
 				, mask{ std::string("xyzw").substr(0, base_count) }
+				, is_single(is_single)
 				, base_count(base_count)
 			{
 			}
 
 			expression_helper_t(const std::string& text, const std::string& mask, bool is_single = true, int base_count = Count)
 				: expression_base_t{ text }
-				, is_single(is_single)
 				, mask(mask)
+				, is_single(is_single)
 				, base_count(base_count)
 			{
 			}
 
 			template<size_t N>
-			expression_helper_t(const std::string& text, const char (&mask)[N], bool is_single = true, int base_count = Count)
+			expression_helper_t(const std::string& text, const char(&mask)[N], bool is_single = true, int base_count = Count)
 				: expression_helper_t{ text, std::string(mask), is_single, base_count }
 			{
 				static_assert(N == Count + 1, "Bad swizzle!");
@@ -180,8 +143,8 @@ namespace shader_code
 				base_count = rhs.base_count;
 			}
 
-			template<typename Type>
-			expression_t<Type::type, Type::count> as() const
+			template<typename AsType>
+			expression_t<AsType::type, AsType::count> as() const
 			{
 				return{ text, mask, is_single, base_count };
 			}
@@ -199,7 +162,7 @@ namespace shader_code
 				std::string new_mask;
 
 				using sw = std::string[]; sw{ (new_mask += mask.substr(channels, 1))... };
-				
+
 				return{ !is_single ? "(" + text + ")" : text, new_mask, is_single, base_count };
 			}
 
@@ -243,7 +206,7 @@ namespace shader_code
 				return{ text, mask, true, base_count };
 			}
 
-		//protected:
+			//protected:
 			template<typename RetType = type, typename ArgType>
 			expression_t<RetType::type, RetType::count> call_operator(const std::string& opname, const ArgType& rhs) const
 			{
@@ -256,6 +219,9 @@ namespace shader_code
 				return{ opname + to_string(), true };
 			}
 		};
+
+		template<typename Type>
+		using expression_from = expression_t<Type::type, Type::count>;
 
 		template<type_class_t Type, int Count>
 		struct expression_ctors_t : public expression_helper_t<Type, Count>
@@ -459,7 +425,7 @@ namespace shader_code
 		template<type_class_t Type, int Count>
 		struct expression_t : public expression_swizzle_t<Type, Count>
 		{
-			using base = typename expression_swizzle_t<Type, Count>;
+			using base = expression_swizzle_t<Type, Count>;
 			using base::base;
 
 			const expression_t operator -()
@@ -513,9 +479,18 @@ namespace shader_code
 
 			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 
-			const expression_from<boolean_t<1>> operator!() const { return this->call_operator<boolean_t<1>>("!"); }
-			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("==", rhs); }
-			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("!=", rhs); }
+			const expression_t<type_class_t::type_bool, 1> operator!() const
+			{
+				return this->call_operator<type_t<type_class_t::type_bool, 1>>("!");
+			}
+			const expression_t<type_class_t::type_bool, 1> operator==(const expression_t& rhs) const
+			{
+				return this->call_operator<type_t<type_class_t::type_bool, 1>>("==", rhs);
+			}
+			const expression_t<type_class_t::type_bool, 1> operator!=(const expression_t& rhs) const
+			{
+				return this->call_operator<type_t<type_class_t::type_bool, 1>>("!=", rhs);
+			}
 		};
 
 		template<int Count>
@@ -536,7 +511,7 @@ namespace shader_code
 			const expression_t operator -()
 			{
 				if (this->is_single && this->text[0] == '-')
-					return expression_t{ this->text.substr(1), mask };
+					return expression_t{ this->text.substr(1), base::mask };
 
 				return this->call_operator("-");
 			}
@@ -555,8 +530,8 @@ namespace shader_code
 
 				return this->call_operator("+", rhs);
 			}
-			template<int Count> const expression_t<Type, Count> operator/(const expression_t<Type, Count>& rhs) const { return this->call_operator<type_t<Type, Count>>("/", rhs); }
-			template<int Count> const expression_t<Type, Count> operator*(const expression_t<Type, Count>& rhs) const { return this->call_operator<type_t<Type, Count>>("*", rhs); }
+			template<int Count> const expression_t<Type, Count> operator/(const expression_t<Type, Count>& rhs) const { return this->template call_operator<type_t<Type, Count>>("/", rhs); }
+			template<int Count> const expression_t<Type, Count> operator*(const expression_t<Type, Count>& rhs) const { return this->template call_operator<type_t<Type, Count>>("*", rhs); }
 
 			expression_t operator=(const expression_t& rhs) { return this->call_operator("=", rhs); }
 
@@ -565,19 +540,13 @@ namespace shader_code
 			expression_t operator/=(const expression_t& rhs) { return this->call_operator("/=", rhs); }
 			expression_t operator*=(const expression_t& rhs) { return this->call_operator("*=", rhs); }
 
-			const expression_from<boolean_t<1>> operator >(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>(">", rhs); }
-			const expression_from<boolean_t<1>> operator >=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>(">=", rhs); }
-			const expression_from<boolean_t<1>> operator <(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("<", rhs); }
-			const expression_from<boolean_t<1>> operator <=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("<=", rhs); }
-			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("==", rhs); }
-			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return this->call_operator<boolean_t<1>>("!=", rhs); }
+			const expression_from<boolean_t<1>> operator >(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>(">", rhs); }
+			const expression_from<boolean_t<1>> operator >=(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>(">=", rhs); }
+			const expression_from<boolean_t<1>> operator <(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>("<", rhs); }
+			const expression_from<boolean_t<1>> operator <=(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>("<=", rhs); }
+			const expression_from<boolean_t<1>> operator==(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>("==", rhs); }
+			const expression_from<boolean_t<1>> operator!=(const expression_t& rhs) const { return this->template call_operator<boolean_t<1>>("!=", rhs); }
 		};
-
-		template<typename Type>
-		static expression_t<(type_class_t)Type::type, Type::count> expression(const std::string& text, bool is_single = true)
-		{
-			return{ text, is_single };
-		}
 
 		template<typename Type, typename NameType>
 		struct function_t
@@ -609,6 +578,81 @@ namespace shader_code
 				return{ result + ")" };
 			}
 		};
+	}
+
+	struct clike_language
+	{
+		using type_class_t = clike_language_impl::type_class_t;
+
+		template<type_class_t Type, int Count>
+		using type_t = clike_language_impl::type_t<Type, Count>;
+
+		template<type_class_t Type, int Count>
+		using expression_t = clike_language_impl::expression_t<Type, Count>;
+
+		template<size_t Count>
+		using boolean_t = clike_language_impl::boolean_t<Count>;
+
+		template<size_t Count>
+		using integer_t = clike_language_impl::integer_t<Count>;
+
+		template<size_t Count>
+		using float_point_t = clike_language_impl::float_point_t<Count>;
+
+		using sampler1D_t = type_t<type_class_t::type_sampler1D, 1>;
+		using sampler2D_t = type_t<type_class_t::type_sampler2D, 1>;
+		using sampler3D_t = type_t<type_class_t::type_sampler3D, 1>;
+		using void_t = type_t<type_class_t::type_void, 0>;
+
+		template<typename Type>
+		using expression_from = expression_t<Type::type, Type::count>;
+
+		template<typename Type, typename NameType>
+		using function_t = clike_language_impl::function_t<Type, NameType>;
+
+		template<type_class_t Type>
+		using native_type_t = clike_language_impl::native_type_t<Type>;
+
+		enum function_class_t
+		{
+			function_abs,
+			function_fract,
+			function_floor,
+			function_exp,
+			function_log,
+			function_exp2,
+			function_log2,
+			function_pow,
+			function_texture,
+			function_texture_lod,
+			function_texture_bias,
+			function_texture_grad,
+			function_normalize,
+			function_any,
+			function_all,
+			function_dot,
+			function_min,
+			function_max,
+			function_greater,
+			function_less,
+			function_equal,
+			function_greater_equal,
+			function_less_equal,
+			function_not_equal,
+			function_sin,
+			function_cos,
+			function_clamp,
+			function_sqrt,
+			function_rsqrt,
+			function_ddx,
+			function_ddy
+		};
+
+		template<typename Type>
+		static expression_t<(type_class_t)Type::type, Type::count> expression(const std::string& text, bool is_single = true)
+		{
+			return{ text, is_single };
+		}
 
 		template<type_class_t Type, int Count>
 		static expression_from<void_t> if_(expression_from<boolean_t<1>> condition, expression_t<Type, Count> then)
