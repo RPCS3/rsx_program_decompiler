@@ -374,7 +374,10 @@ namespace rsx
 
 						auto src = apply_instruction_modifiers(arg);
 
-						src.assign(float_point_expr<4>(arg.text, arg.mask, true, 4));
+						if (src.mask.size() != dest.mask.size())
+							src.assign(float_point_expr<4>(arg.text, arg.mask, true, (int)dest.mask.size()));
+						else
+							src.assign(src.without_scope());
 
 						for (auto &entry : condition_map)
 						{
@@ -459,9 +462,9 @@ namespace rsx
 				any
 			};
 
-			typename base::compare_function execution_condition_function() const
+			typename base::compare_function execution_condition_function(u32 condition = instruction.data.d0.cond) const
 			{
-				switch (instruction.data.d0.cond)
+				switch (condition)
 				{
 				case gt | eq: return base::compare_function::greater_equal;
 				case lt | eq: return base::compare_function::less_equal;
@@ -474,28 +477,35 @@ namespace rsx
 				throw;
 			}
 
-			boolean_expr<1> execution_condition(condition_operation operation)
+			boolean_expr<1> execution_condition(condition_operation operation, bool invert = false)
 			{
-				if (instruction.data.d0.cond == always)
+				u32 condition = instruction.data.d0.cond;
+
+				if (invert)
+				{
+					condition = ~condition & always;
+				}
+
+				if (condition == always)
 				{
 					return true;
 				}
 
-				if (instruction.data.d0.cond == never)
+				if (condition == never)
 				{
 					return false;
 				}
 
-				auto cond = execution_condition_register();
+				auto condition_register = execution_condition_register();
 
 				if (instruction.data.d0.mask_x == instruction.data.d0.mask_y &&
 					instruction.data.d0.mask_y == instruction.data.d0.mask_z &&
 					instruction.data.d0.mask_z == instruction.data.d0.mask_w)
 				{
-					return base::custom_compare(execution_condition_function(), 1, cond.x(), float_point_expr<1>(0.0f));
+					return base::custom_compare(execution_condition_function(condition), 1, condition_register.x(), float_point_expr<1>(0.0f));
 				}
 
-				auto result = base::custom_compare(execution_condition_function(), 4, cond, float_point_t<4>::ctor(0.0f));
+				auto result = base::custom_compare(execution_condition_function(condition), 4, condition_register, float_point_t<4>::ctor(0.0f));
 
 				switch (operation)
 				{
@@ -546,16 +556,14 @@ namespace rsx
 					std::size_t from = base::writer.position;
 					std::size_t to = address_value();
 
-					boolean_expr<1> condition{ execution_condition(condition_operation::all) };
-
 					if (to > from)
 					{
-						base::writer.before(from, "if (!(" + condition.to_string() + "))\n{\n");
+						base::writer.before(from, "if (" + execution_condition(condition_operation::all, true).to_string() + ")\n{\n");
 						base::writer.before(to, "}\n");
 					}
 					else
 					{
-						base::writer.before(from, "}\nwhile (" + condition.to_string() + ");\n");
+						base::writer.before(from, "}\nwhile (" + execution_condition(condition_operation::all, false).to_string() + ");\n");
 						base::writer.before(to, "do\n{\n");
 					}
 				}
@@ -588,7 +596,7 @@ namespace rsx
 				case vec_opcode::mov: return set_dst(src_swizzled_as_dst(0));
 				case vec_opcode::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1));
 				case vec_opcode::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
-				case vec_opcode::mad: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1).without_scope() + src_swizzled_as_dst(2));
+				case vec_opcode::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2));
 				case vec_opcode::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
 				case vec_opcode::dph: break;
 				case vec_opcode::dp4: return set_dst(base::dot(src(0), src(1)));

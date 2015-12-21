@@ -441,7 +441,10 @@ namespace rsx
 
 						if (flags & disable_swizzle_as_dst)
 						{
-							src.assign(float_point_expr<4>(arg.text, arg.mask, true, (int)dest.mask.size()));
+							if (src.mask.size() != dest.mask.size())
+								src.assign(float_point_expr<4>(arg.text, arg.mask, true, (int)dest.mask.size()));
+							else
+								src.assign(src.without_scope());
 						}
 
 						for (auto &entry : condition_map)
