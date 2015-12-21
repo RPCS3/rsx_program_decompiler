@@ -333,11 +333,11 @@ int main(int argc, char** argv)
 	extract_objects_from_elf(argv[1], "tmp.vp.cg", { "_binary_vp_shader_vpo_start", "_binary_vp_shader_vpo_end" });
 	extract_objects_from_elf(argv[1], "tmp.fp.cg", { "_binary_fp_shader_fpo_start", "_binary_fp_shader_fpo_end" });
 	extract_ucode("tmp.fp.cg", "tmp.fp.ucode");
-	extract_ucode("tmp.vp.cg", "tmp.vp.ucode");
+	extract_ucode("compiled.cg", "tmp.vp.ucode");
 
 	rsx::decompiled_shader program;
 
-	if (1)
+	if (0)
 	{
 		using namespace rsx::fragment_program;
 		std::vector<char> file = load_file("tmp.fp.ucode");

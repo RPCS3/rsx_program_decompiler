@@ -80,7 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)common\include\;$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
@@ -93,7 +93,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)common\include\;$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -103,7 +103,7 @@
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)common\include\;$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -113,7 +113,7 @@
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(ProjectName)\$(Platform)-$(Configuration)\</IntDir>
     <LibraryPath>$(SolutionDir)lib\$(Platform)-$(Configuration)\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)common\include\;$(SolutionDir)rsx_program_decompiler_lib\;$(SolutionDir)shader_code/;$(SolutionDir)rsx_decompiler\;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
@@ -128,7 +128,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>rsx_decompiler.lib;common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -142,7 +142,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>rsx_decompiler.lib;common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -160,7 +160,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>rsx_decompiler.lib;common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -178,7 +178,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>rsx_decompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>rsx_decompiler.lib;common.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,5 +1,5 @@
 #include "builder.h"
-#include "fmt.h"
+#include <common/StrFmt.h>
 
 namespace shader_code
 {
@@ -64,7 +64,7 @@ namespace shader_code
 		std::string result;
 		int lvl = 0;
 
-		for (const std::string &line : fmt::split(build(), "\n", false))
+		for (const std::string &line : fmt::split(build(), { "\n" }, false))
 		{
 			if (line.empty())
 			{
