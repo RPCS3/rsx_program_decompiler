@@ -536,84 +536,84 @@ namespace rsx
 
 			builder::expression_base_t decode_instruction()
 			{
-				switch (instruction.data.dst.opcode | (instruction.data.src1.opcode_is_branch << 6))
+				switch (u32(instruction.data.dst.opcode) | (u32(instruction.data.src1.opcode_is_branch) << 6))
 				{
-				case opcode::nop: return base::comment("nop");
-				case opcode::mov: return set_dst(src_swizzled_as_dst(0), disable_swizzle_as_dst);
-				case opcode::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1), disable_swizzle_as_dst);
-				case opcode::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(1), disable_swizzle_as_dst);
-				case opcode::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2), disable_swizzle_as_dst);
-				case opcode::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
-				case opcode::dp4: return set_dst(base::dot(src(0), src(1)));
-				case opcode::dst:
+				case (u32)opcode::nop: return base::comment("nop");
+				case (u32)opcode::mov: return set_dst(src_swizzled_as_dst(0), disable_swizzle_as_dst);
+				case (u32)opcode::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1), disable_swizzle_as_dst);
+				case (u32)opcode::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(1), disable_swizzle_as_dst);
+				case (u32)opcode::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2), disable_swizzle_as_dst);
+				case (u32)opcode::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
+				case (u32)opcode::dp4: return set_dst(base::dot(src(0), src(1)));
+				case (u32)opcode::dst:
 				{
 					auto src_0 = src(0);
 					auto src_1 = src(1);
 
 					return set_dst(float_point_t<4>::ctor(1.0f, src_0.y() * src_1.y(), src_0.z(), src_1.w()));
 				}
-				case opcode::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::frc: return set_dst(base::fract(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::flr: return set_dst(base::floor(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::kil: return conditional(typename base::void_expr{ "discard;" });
-				case opcode::pk4: return base::unimplemented("PK4");
-				case opcode::up4: return base::unimplemented("UP4");
-				case opcode::ddx: return set_dst(base::ddx(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::ddy: return set_dst(base::ddy(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::tex: return set_dst(base::texture(tex(), src(0).xy()));
-				case opcode::txp: return set_dst(base::texture(tex(), src(0).xy() / src(0).w()));
-				case opcode::txd: return set_dst(base::texture_grad(tex(), src(0).xy(), src(1).xy(), src(2).xy()));
-				case opcode::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(0), disable_swizzle_as_dst);
-				case opcode::rsq: return set_dst(base::rsqrt(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::ex2: return set_dst(base::exp2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::lg2: return set_dst(base::log2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::lit: return base::unimplemented("LIT");
-				case opcode::lrp: return base::unimplemented("LRP");
-				case opcode::str: return set_dst(1.0f);
-				case opcode::sfl: return set_dst(0.0f);
-				case opcode::cos: return set_dst(base::cos(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::sin: return set_dst(base::sin(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case opcode::pk2: return base::unimplemented("PK2");
-				case opcode::up2: return base::unimplemented("UP2");
-				case opcode::pow: return set_dst(base::pow(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::pkb: return base::unimplemented("PKB");
-				case opcode::upb: return base::unimplemented("UPB");
-				case opcode::pk16: return base::unimplemented("PK16");
-				case opcode::up16: return base::unimplemented("UP16");
-				case opcode::bem: return base::unimplemented("BEM");
-				case opcode::pkg: return base::unimplemented("PKG");
-				case opcode::upg: return base::unimplemented("UPG");
-				case opcode::dp2a:
+				case (u32)opcode::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::frc: return set_dst(base::fract(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::flr: return set_dst(base::floor(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::kil: return conditional(typename base::void_expr{ "discard;" });
+				case (u32)opcode::pk4: return base::unimplemented("PK4");
+				case (u32)opcode::up4: return base::unimplemented("UP4");
+				case (u32)opcode::ddx: return set_dst(base::ddx(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::ddy: return set_dst(base::ddy(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::tex: return set_dst(base::texture(tex(), src(0).xy()));
+				case (u32)opcode::txp: return set_dst(base::texture(tex(), src(0).xy() / src(0).w()));
+				case (u32)opcode::txd: return set_dst(base::texture_grad(tex(), src(0).xy(), src(1).xy(), src(2).xy()));
+				case (u32)opcode::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(0), disable_swizzle_as_dst);
+				case (u32)opcode::rsq: return set_dst(base::rsqrt(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::ex2: return set_dst(base::exp2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::lg2: return set_dst(base::log2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::lit: return base::unimplemented("LIT");
+				case (u32)opcode::lrp: return base::unimplemented("LRP");
+				case (u32)opcode::str: return set_dst(1.0f);
+				case (u32)opcode::sfl: return set_dst(0.0f);
+				case (u32)opcode::cos: return set_dst(base::cos(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::sin: return set_dst(base::sin(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode::pk2: return base::unimplemented("PK2");
+				case (u32)opcode::up2: return base::unimplemented("UP2");
+				case (u32)opcode::pow: return set_dst(base::pow(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::pkb: return base::unimplemented("PKB");
+				case (u32)opcode::upb: return base::unimplemented("UPB");
+				case (u32)opcode::pk16: return base::unimplemented("PK16");
+				case (u32)opcode::up16: return base::unimplemented("UP16");
+				case (u32)opcode::bem: return base::unimplemented("BEM");
+				case (u32)opcode::pkg: return base::unimplemented("PKG");
+				case (u32)opcode::upg: return base::unimplemented("UPG");
+				case (u32)opcode::dp2a:
 				{
 					auto src_0 = src(0);
 					auto src_1 = src(1);
 
 					return set_dst(float_point_t<4>::ctor(src_0.x() * src_1.x() + src_0.y() * src_1.y() + src(2).z()));
 				}
-				case opcode::txl: return set_dst(base::texture_lod(tex(), src(0).xy(), src(1).x()));
-				case opcode::txb: return set_dst(base::texture_bias(tex(), src(0).xy(), src(1).x()));
-				case opcode::texbem: return base::unimplemented("TEXBEM");
-				case opcode::txpbem: return base::unimplemented("TXPBEM");
-				case opcode::bemlum: return base::unimplemented("BEMLUM");
-				case opcode::refl: return base::unimplemented("REFL");
-				case opcode::timeswtex: return base::unimplemented("TIMESWTEX");
-				case opcode::dp2: return set_dst(base::dot(src(0).xy(), src(1).xy()));
-				case opcode::nrm: return set_dst(base::normalize(src(0).xyz()).xyzx());
-				case opcode::div: return set_dst(src_swizzled_as_dst(0) / src_swizzled_as_dst(1), disable_swizzle_as_dst);
-				case opcode::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case opcode::lif: return base::unimplemented("LIF");
-				case opcode::fenct: return base::comment("fenct");
-				case opcode::fencb: return base::comment("fencb");
-				case opcode::brk: return conditional(typename base::void_expr("break;"));
-				case opcode::cal: return base::unimplemented("CAL");
-				case opcode::ife:
+				case (u32)opcode::txl: return set_dst(base::texture_lod(tex(), src(0).xy(), src(1).x()));
+				case (u32)opcode::txb: return set_dst(base::texture_bias(tex(), src(0).xy(), src(1).x()));
+				case (u32)opcode::texbem: return base::unimplemented("TEXBEM");
+				case (u32)opcode::txpbem: return base::unimplemented("TXPBEM");
+				case (u32)opcode::bemlum: return base::unimplemented("BEMLUM");
+				case (u32)opcode::refl: return base::unimplemented("REFL");
+				case (u32)opcode::timeswtex: return base::unimplemented("TIMESWTEX");
+				case (u32)opcode::dp2: return set_dst(base::dot(src(0).xy(), src(1).xy()));
+				case (u32)opcode::nrm: return set_dst(base::normalize(src(0).xyz()).xyzx());
+				case (u32)opcode::div: return set_dst(src_swizzled_as_dst(0) / src_swizzled_as_dst(1), disable_swizzle_as_dst);
+				case (u32)opcode::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode::lif: return base::unimplemented("LIF");
+				case (u32)opcode::fenct: return base::comment("fenct");
+				case (u32)opcode::fencb: return base::comment("fencb");
+				case (u32)opcode::brk: return conditional(typename base::void_expr("break;"));
+				case (u32)opcode::cal: return base::unimplemented("CAL");
+				case (u32)opcode::ife:
 					base::writer += typename base::writer_t{ "if (" + execution_condition(condition_operation::all).to_string() + ")\n{\n" };
 
 					if (instruction.data.src2.end_offset != instruction.data.src1.else_offset)
@@ -623,7 +623,7 @@ namespace rsx
 
 					return{ "" };
 
-				case opcode::loop:
+				case (u32)opcode::loop:
 					base::writer += typename base::writer_t
 					{
 						"for ("
@@ -635,8 +635,8 @@ namespace rsx
 
 					base::writer.after(instruction.data.src2.end_offset >> 2, "}\n");
 					return{ "" };
-				case opcode::rep: return base::unimplemented("REP");
-				case opcode::ret: return conditional(typename base::void_expr("return;"));
+				case (u32)opcode::rep: return base::unimplemented("REP");
+				case (u32)opcode::ret: return conditional(typename base::void_expr("return;"));
 				}
 
 				throw;
