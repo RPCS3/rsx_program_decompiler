@@ -1,6 +1,5 @@
 #pragma once
 #include "builder.h"
-#include <common/StrFmt.h>
 
 namespace shader_code
 {
@@ -72,7 +71,10 @@ namespace shader_code
 
 			static std::string to_string(type value)
 			{
-				std::string result = fmt::format("%.8g", value);
+				char buf[128]{};
+				std::snprintf(buf, sizeof(buf), "%.8g", value);
+
+				std::string result(buf); // Maybe std::to_string(value);
 
 				if (result.find('.') == result.npos && result.find('e') == result.npos)
 				{

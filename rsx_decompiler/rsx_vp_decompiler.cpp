@@ -535,13 +535,13 @@ namespace rsx
 
 				switch ((u32)instruction.data.d1.sca_opcode)
 				{
-				case (u32)sca_opcode::mov: return set_dst(src_swizzled_as_dst(2));
-				case (u32)sca_opcode::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2));
-				case (u32)sca_opcode::rcc: return set_dst(base::clamp(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2), 5.42101e-20f, 1.884467e19f));
-				case (u32)sca_opcode::rsq: return set_dst(base::rsqrt(base::abs(src_swizzled_as_dst(2))));
-				case (u32)sca_opcode::exp: return set_dst(base::exp(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::log: return set_dst(base::log(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::lit:
+				case (u32)sca_opcode_t::mov: return set_dst(src_swizzled_as_dst(2));
+				case (u32)sca_opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2));
+				case (u32)sca_opcode_t::rcc: return set_dst(base::clamp(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2), 5.42101e-20f, 1.884467e19f));
+				case (u32)sca_opcode_t::rsq: return set_dst(base::rsqrt(base::abs(src_swizzled_as_dst(2))));
+				case (u32)sca_opcode_t::exp: return set_dst(base::exp(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::log: return set_dst(base::log(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::lit:
 				{
 					auto t = src(2);
 
@@ -550,8 +550,8 @@ namespace rsx
 
 					return set_dst(swizzle_as_dst(float_point_t<4>::ctor(1.0f, t.x(), z_value, 1.0f)));
 				}
-				case (u32)sca_opcode::bra: break;
-				case (u32)sca_opcode::bri:
+				case (u32)sca_opcode_t::bra: break;
+				case (u32)sca_opcode_t::bri:
 				{
 					std::size_t from = base::writer.position;
 					std::size_t to = address_value();
@@ -569,17 +569,17 @@ namespace rsx
 				}
 				return{ "" };
 
-				case (u32)sca_opcode::cal: break;
-				case (u32)sca_opcode::cli: break;
-				case (u32)sca_opcode::ret: return conditional(typename base::void_expr{ "return" });
-				case (u32)sca_opcode::lg2: return set_dst(base::log2(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::ex2: return set_dst(base::exp2(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::sin: return set_dst(base::sin(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::cos: return set_dst(base::cos(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode::brb: break;
-				case (u32)sca_opcode::clb: break;
-				case (u32)sca_opcode::psh: break;
-				case (u32)sca_opcode::pop: break;
+				case (u32)sca_opcode_t::cal: break;
+				case (u32)sca_opcode_t::cli: break;
+				case (u32)sca_opcode_t::ret: return conditional(typename base::void_expr{ "return" });
+				case (u32)sca_opcode_t::lg2: return set_dst(base::log2(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::ex2: return set_dst(base::exp2(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::sin: return set_dst(base::sin(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::cos: return set_dst(base::cos(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::brb: break;
+				case (u32)sca_opcode_t::clb: break;
+				case (u32)sca_opcode_t::psh: break;
+				case (u32)sca_opcode_t::pop: break;
 				default:
 					throw;
 				}
@@ -593,29 +593,29 @@ namespace rsx
 
 				switch ((u32)instruction.data.d1.vec_opcode)
 				{
-				case (u32)vec_opcode::mov: return set_dst(src_swizzled_as_dst(0));
-				case (u32)vec_opcode::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1));
-				case (u32)vec_opcode::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
-				case (u32)vec_opcode::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2));
-				case (u32)vec_opcode::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
-				case (u32)vec_opcode::dph: break;
-				case (u32)vec_opcode::dp4: return set_dst(base::dot(src(0), src(1)));
-				case (u32)vec_opcode::dst: break;
-				case (u32)vec_opcode::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::arl: return typename base::writer_t{} += address_register() = integer_t<1>::ctor(src(0).x());
-				case (u32)vec_opcode::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
-				case (u32)vec_opcode::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
-				case (u32)vec_opcode::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::sfl: return set_dst(0.0f);
-				case (u32)vec_opcode::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));;
-				case (u32)vec_opcode::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode::str: return set_dst(1.0f);
-				case (u32)vec_opcode::ssg: break;
-				case (u32)vec_opcode::txl: break;
+				case (u32)vec_opcode_t::mov: return set_dst(src_swizzled_as_dst(0));
+				case (u32)vec_opcode_t::mul: return set_dst(src_swizzled_as_dst(0) * src_swizzled_as_dst(1));
+				case (u32)vec_opcode_t::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
+				case (u32)vec_opcode_t::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2));
+				case (u32)vec_opcode_t::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
+				case (u32)vec_opcode_t::dph: break;
+				case (u32)vec_opcode_t::dp4: return set_dst(base::dot(src(0), src(1)));
+				case (u32)vec_opcode_t::dst: break;
+				case (u32)vec_opcode_t::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::arl: return typename base::writer_t{} += address_register() = integer_t<1>::ctor(src(0).x());
+				case (u32)vec_opcode_t::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
+				case (u32)vec_opcode_t::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
+				case (u32)vec_opcode_t::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::sfl: return set_dst(0.0f);
+				case (u32)vec_opcode_t::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));;
+				case (u32)vec_opcode_t::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
+				case (u32)vec_opcode_t::str: return set_dst(1.0f);
+				case (u32)vec_opcode_t::ssg: break;
+				case (u32)vec_opcode_t::txl: break;
 
 				default:
 					throw;
@@ -626,19 +626,19 @@ namespace rsx
 
 			typename base::expression_base_t decode_instruction()
 			{
-				if (instruction.data.d1.sca_opcode == sca_opcode::nop && instruction.data.d1.vec_opcode == vec_opcode::nop)
+				if (instruction.data.d1.sca_opcode == sca_opcode_t::nop && instruction.data.d1.vec_opcode == vec_opcode_t::nop)
 				{
 					return base::comment("NOP");
 				}
 
 				typename base::writer_t result;
 
-				if (instruction.data.d1.sca_opcode != sca_opcode::nop)
+				if (instruction.data.d1.sca_opcode != sca_opcode_t::nop)
 				{
 					result += decode_sca_instruction();
 				}
 
-				if (instruction.data.d1.vec_opcode != vec_opcode::nop)
+				if (instruction.data.d1.vec_opcode != vec_opcode_t::nop)
 				{
 					result += decode_vec_instruction();
 				}

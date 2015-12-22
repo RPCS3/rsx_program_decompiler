@@ -7,7 +7,8 @@ namespace rsx
 	namespace vertex_program
 	{
 		using u32 = std::uint32_t;
-		enum class sca_opcode : u32
+
+		enum class sca_opcode_t : u32
 		{
 			nop = 0x00,
 			mov = 0x01,
@@ -32,7 +33,7 @@ namespace rsx
 			pop = 0x14
 		};
 
-		enum class vec_opcode : u32
+		enum class vec_opcode_t : u32
 		{
 			nop = 0x00,
 			mov = 0x01,
@@ -105,8 +106,8 @@ namespace rsx
 				u32 src0h : 8;
 				u32 input_src : 4;
 				u32 const_src : 10;
-				vec_opcode vec_opcode : 5;
-				sca_opcode sca_opcode : 5;
+				vec_opcode_t vec_opcode : 5;
+				sca_opcode_t sca_opcode : 5;
 			};
 		};
 

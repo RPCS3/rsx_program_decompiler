@@ -1,5 +1,4 @@
 #include "builder.h"
-#include <common/StrFmt.h>
 
 namespace shader_code
 {
@@ -59,12 +58,38 @@ namespace shader_code
 		fill_to(++position);
 	}
 
+	static std::vector<std::string> get_lines(const std::string& source)
+	{
+		std::vector<std::string> result;
+
+		size_t cursor_begin = 0;
+
+		for (size_t cursor_end = 0; cursor_end < source.length(); ++cursor_end)
+		{
+			if (source[cursor_end] == '\n')
+			{
+				result.emplace_back(source.cbegin() + cursor_begin, source.cbegin() + cursor_end);
+
+				cursor_begin = cursor_end + 1;
+				cursor_end = cursor_begin - 1;
+				break;
+			}
+		}
+
+		if (cursor_begin != source.length())
+		{
+			result.emplace_back(source.cbegin() + cursor_begin, source.cend());
+		}
+
+		return result;
+	}
+
 	std::string builder::writer_t::finalize() const
 	{
 		std::string result;
 		int lvl = 0;
 
-		for (const std::string &line : fmt::split(build(), { "\n" }, false))
+		for (const std::string &line : get_lines(build()))
 		{
 			if (line.empty())
 			{

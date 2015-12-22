@@ -7,7 +7,7 @@ namespace rsx
 	{
 		using u32 = std::uint32_t;
 
-		enum class opcode : u32
+		enum class opcode_t : u32
 		{
 			nop = 0x00, // No-Operation
 			mov = 0x01, // Move
@@ -79,13 +79,13 @@ namespace rsx
 			ret = 0x45  // Return
 		};
 
-		inline opcode operator |(opcode lhs, u32 rhs)
+		inline opcode_t operator |(opcode_t lhs, u32 rhs)
 		{
-			return opcode(u32(lhs) | rhs);
+			return opcode_t(u32(lhs) | rhs);
 		}
-		inline opcode operator |(u32 lhs, opcode rhs)
+		inline opcode_t operator |(u32 lhs, opcode_t rhs)
 		{
-			return opcode(lhs | u32(rhs));
+			return opcode_t(lhs | u32(rhs));
 		}
 
 		enum class src_reg_type_t : u32
@@ -113,7 +113,7 @@ namespace rsx
 				u32 tex_num : 4;
 				u32 exp_tex : 1; // _bx2
 				u32 prec : 2;
-				opcode opcode : 6;
+				opcode_t opcode : 6;
 				u32 no_dest : 1;
 				u32 saturate : 1; // _sat
 			};
