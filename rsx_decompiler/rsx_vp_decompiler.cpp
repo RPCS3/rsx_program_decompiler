@@ -18,6 +18,8 @@ namespace rsx
 			template<int Count>
 			using float_point_expr = typename base::template float_point_expr<Count>;
 
+			using sampler2D_expr = typename base::template expression_from<typename base::sampler2D_t>;
+
 			template<int Count>
 			using integer_expr = typename base::template integer_expr<Count>;
 
@@ -62,13 +64,23 @@ namespace rsx
 						+ "]";
 				}
 
+				sampler2D_expr texture(int index)
+				{
+					texture_info info;
+					info.id = index;
+					info.name = "vtexture" + std::to_string(index);
+					program.textures.insert(info);
+
+					return info.name;
+				}
+
 				float_point_expr<4> output(u32 index)
 				{
 					program.output_attributes |= (1 << index);
 					register_info info;
 					info.id = index;
 					info.type = register_type::single_float_point;
-					info.name = rsx::fragment_program::input_attrib_map[index];//"o" + std::to_string(index);
+					info.name = "o" + std::to_string(index);
 					program.temporary_registers.insert(info);
 					return info.name;
 				}
@@ -97,7 +109,7 @@ namespace rsx
 				float_point_expr<4> input(int index)
 				{
 					program.input_attributes |= (1 << index);
-					return input_registers_table[index];
+					return input_attrib_names[index];
 				}
 			};
 
@@ -176,6 +188,11 @@ namespace rsx
 				}
 
 				return float_point_expr<4>(arg.text, arg_mask, arg.is_single, arg.base_count);
+			}
+
+			sampler2D_expr texture()
+			{
+				return context.texture(instruction.unpack_src(0).tmp_src & 0x3);
 			}
 
 			float_point_expr<4> src(int index, bool is_swizzle_as_dst = false)
@@ -426,14 +443,18 @@ namespace rsx
 				return result;
 			}
 
-			typename base::writer_t set_dst(float_point_expr<1> arg)
+			builder::writer_t set_dst(const float_point_expr<1>& arg)
 			{
-				if (destination_swizzle().size() != 1)
+				switch (destination_swizzle().size())
 				{
-					return set_dst(float_point_t<4>::ctor(arg));
-				}
+				case 1: return set_dst(float_point_expr<4>{ arg.to_string() });
+				case 2: return set_dst(float_point_expr<4>{ float_point_t<2>::ctor(arg).to_string() });
+				case 3: return set_dst(float_point_expr<4>{ float_point_t<3>::ctor(arg).to_string() });
+				case 4: return set_dst(float_point_t<4>::ctor(arg));
 
-				return set_dst(float_point_expr<4>{ arg.to_string() });
+				default:
+					throw;
+				}
 			}
 
 			typename base::writer_t set_dst(boolean_expr<4> arg)
@@ -598,7 +619,7 @@ namespace rsx
 				case (u32)vec_opcode_t::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
 				case (u32)vec_opcode_t::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2));
 				case (u32)vec_opcode_t::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
-				case (u32)vec_opcode_t::dph: break;
+				case (u32)vec_opcode_t::dph: return set_dst(base::dot(float_point_t<4>::ctor(src(0).xyz(), 1.0), src(1))); break;
 				case (u32)vec_opcode_t::dp4: return set_dst(base::dot(src(0), src(1)));
 				case (u32)vec_opcode_t::dst: break;
 				case (u32)vec_opcode_t::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
@@ -615,7 +636,11 @@ namespace rsx
 				case (u32)vec_opcode_t::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::str: return set_dst(1.0f);
 				case (u32)vec_opcode_t::ssg: break;
-				case (u32)vec_opcode_t::txl: break;
+				case (u32)vec_opcode_t::txl:
+				{
+					auto src_1 = src(1);
+					return set_dst(base::texture_lod(texture(), src_1.xy(), src_1.w()));
+				}
 
 				default:
 					throw;
@@ -649,14 +674,27 @@ namespace rsx
 		public:
 			decompiled_shader decompile(std::size_t offset, instruction_t *instructions)
 			{
+				context.program.ucode_size = 0;
+
 				for (std::size_t i = offset; i < 512; ++i, base::writer.next())
 				{
 					instruction = instructions[i].unpack();
 
-					base::writer += decode_instruction();
+					try
+					{
+						base::writer += decode_instruction();
+					}
+					catch (...)
+					{
+						base::writer += base::comment("exception!");
+					}
+
+					context.program.ucode_size += sizeof(instruction_t);
 
 					if (instruction.data.d3.end)
+					{
 						break;
+					}
 				}
 
 				context.program.entry_function = "func0";

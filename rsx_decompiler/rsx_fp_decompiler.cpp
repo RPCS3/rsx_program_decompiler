@@ -2,6 +2,9 @@
 #include "rsx_fp_ucode.h"
 #include <glsl_language.h>
 #include <map>
+#include "../rsx_program_decompiler/endianness.h"
+
+using namespace endianness;
 
 namespace rsx
 {
@@ -17,6 +20,8 @@ namespace rsx
 
 			template<int Count>
 			using float_point_expr = typename base::template float_point_expr<Count>;
+
+			using sampler2D_expr = typename base::template expression_from<typename base::sampler2D_t>;
 
 			template<int Count>
 			using float_point_t = typename base::template float_point_t<Count>;
@@ -62,10 +67,25 @@ namespace rsx
 					return info.name;
 				}
 
+				sampler2D_expr texture(int index)
+				{
+					texture_info info;
+					info.id = index;
+					info.name = "texture" + std::to_string(index);
+					program.textures.insert(info);
+
+					return info.name;
+				}
+
+				float_point_expr<4> texture_coords_modifier(int index)
+				{
+					return{ "texture" + std::to_string(index) + "_cm" };
+				}
+
 				float_point_expr<4> input(int index)
 				{
 					program.input_attributes |= (1 << index);
-					return input_attrib_map[index];
+					return input_attrib_names[index];
 				}
 			};
 
@@ -93,10 +113,10 @@ namespace rsx
 				{
 					instruction_t result;
 
-					result.data.dst._u32 = (data.dst._u32 << 16) | (data.dst._u32 >> 16);
-					result.data.src0._u32 = (data.src0._u32 << 16) | (data.src0._u32 >> 16);
-					result.data.src1._u32 = (data.src1._u32 << 16) | (data.src1._u32 >> 16);
-					result.data.src2._u32 = (data.src2._u32 << 16) | (data.src2._u32 >> 16);
+					(be_t<u32>&)result.data.dst._u32 = (data.dst._u32 << 16) | (data.dst._u32 >> 16);
+					(be_t<u32>&)result.data.src0._u32 = (data.src0._u32 << 16) | (data.src0._u32 >> 16);
+					(be_t<u32>&)result.data.src1._u32 = (data.src1._u32 << 16) | (data.src1._u32 >> 16);
+					(be_t<u32>&)result.data.src2._u32 = (data.src2._u32 << 16) | (data.src2._u32 >> 16);
 
 					return result;
 				}
@@ -153,7 +173,7 @@ namespace rsx
 						case src_reg_type_t::constant: return context.constant();
 						}
 
-						throw;
+						throw std::runtime_error("bad instruction argument (#" + std::to_string((u32)src.reg_type) + ") type.");
 					};
 
 					float_point_expr<4> result = get_variable(src);
@@ -176,6 +196,16 @@ namespace rsx
 					}
 
 					return result;
+				}
+
+				sampler2D_expr texture(context_t& context) const
+				{
+					return context.texture(data.dst.tex_num);
+				}
+
+				float_point_expr<4> texture_coords_modifier(context_t& context) const
+				{
+					return context.texture_coords_modifier(data.dst.tex_num);
 				}
 
 				std::string destination_swizzle() const
@@ -267,7 +297,7 @@ namespace rsx
 					return base::compare_function::equal;
 				}
 
-				throw;
+				throw std::logic_error("");
 			}
 
 			boolean_expr<1> execution_condition(condition_operation operation)
@@ -307,9 +337,14 @@ namespace rsx
 				return base::custom_compare(function, (int)instruction.destination_swizzle().size(), a, b);
 			}
 
-			typename base::template expression_from<typename base::sampler2D_t> tex()
+			sampler2D_expr texture()
 			{
-				return{ "unk_tex" };
+				return instruction.texture(context);
+			}
+
+			float_point_expr<4> texture_coords(int src_index = 0)
+			{
+				return src(src_index) * instruction.texture_coords_modifier(context);
 			}
 
 			template<typename ExprType>
@@ -329,6 +364,7 @@ namespace rsx
 			{
 				none,
 				disable_swizzle_as_dst = 1,
+				allow_bx2
 			};
 
 			template<typename Type>
@@ -374,7 +410,7 @@ namespace rsx
 						break;
 
 					default:
-						throw std::runtime_error("fragment program decompiler: unimplemented precision.");
+						throw std::runtime_error("fragment program decompiler: unimplemented precision. (" + std::to_string(instruction.data.dst.prec) +").");
 					}
 				}
 
@@ -467,7 +503,7 @@ namespace rsx
 
 							if (instruction.data.dst.set_cond)
 							{
-								expression.assign(cond.with_mask(dst_swizzle) = expression);
+								expression.assign(modify_cond.with_mask(dst_swizzle) = expression);
 							}
 
 							result += base::if_(cond.swizzle(channel_to_index.at(entry.first)).template call_operator<boolean_t<1>>(operation, zero), expression);
@@ -494,7 +530,7 @@ namespace rsx
 
 						if (instruction.data.dst.set_cond)
 						{
-							src.assign(float_point_expr<4>(modify_cond.text, dest.mask) = src);
+							src.assign(modify_cond.with_mask(dest.mask) = src);
 						}
 					}
 
@@ -506,12 +542,16 @@ namespace rsx
 
 			builder::writer_t set_dst(const float_point_expr<1>& arg, u32 flags = none)
 			{
-				if (instruction.destination_swizzle().size() != 1)
+				switch (instruction.destination_swizzle().size())
 				{
-					return set_dst(float_point_t<4>::ctor(arg), flags);
-				}
+				case 1: return set_dst(float_point_expr<4>{ arg.to_string() }, flags | disable_swizzle_as_dst);
+				case 2: return set_dst(float_point_expr<4>{ float_point_t<2>::ctor(arg).to_string() }, flags);
+				case 3: return set_dst(float_point_expr<4>{ float_point_t<3>::ctor(arg).to_string() }, flags);
+				case 4: return set_dst(float_point_t<4>::ctor(arg), flags);
 
-				return set_dst(float_point_expr<4>{ arg.to_string() }, flags | disable_swizzle_as_dst);
+				default:
+					throw std::logic_error("bad destination swizzle.");
+				}
 			}
 
 			builder::writer_t set_dst(const boolean_expr<4>& arg, u32 flags = none)
@@ -528,7 +568,7 @@ namespace rsx
 				case 4: arg_string = float_point_t<4>::ctor(boolean_expr<4>{ arg.to_string() }).to_string(); break;
 
 				default:
-					throw;
+					throw std::logic_error("bad destination swizzle.");
 				}
 
 				return set_dst(float_point_expr<4>{ arg_string, std::string("xyzw"), is_single, 4 }, flags);
@@ -565,21 +605,21 @@ namespace rsx
 				case (u32)opcode_t::kil: return conditional(typename base::void_expr{ "discard;" });
 				case (u32)opcode_t::pk4: return base::unimplemented("PK4");
 				case (u32)opcode_t::up4: return base::unimplemented("UP4");
-				case (u32)opcode_t::ddx: return set_dst(base::ddx(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case (u32)opcode_t::ddy: return set_dst(base::ddy(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case (u32)opcode_t::tex: return set_dst(base::texture(tex(), src(0).xy()));
-				case (u32)opcode_t::txp: return set_dst(base::texture(tex(), src(0).xy() / src(0).w()));
-				case (u32)opcode_t::txd: return set_dst(base::texture_grad(tex(), src(0).xy(), src(1).xy(), src(2).xy()));
-				case (u32)opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(0), disable_swizzle_as_dst);
-				case (u32)opcode_t::rsq: return set_dst(base::rsqrt(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case (u32)opcode_t::ex2: return set_dst(base::exp2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case (u32)opcode_t::lg2: return set_dst(base::log2(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				//case (u32)opcode_t::ddx: return set_dst(base::ddx(src(0).xy()), disable_swizzle_as_dst);
+				//case (u32)opcode_t::ddy: return set_dst(base::ddy(src(0).xy()), disable_swizzle_as_dst);
+				case (u32)opcode_t::tex: return set_dst(base::texture(texture(), texture_coords().xy()), allow_bx2);
+				case (u32)opcode_t::txp: return set_dst(base::texture(texture(), texture_coords().xy() / src(0).w()), allow_bx2);
+				case (u32)opcode_t::txd: return set_dst(base::texture_grad(texture(), texture_coords().xy(), src(1).xy(), src(2).xy()), allow_bx2);
+				case (u32)opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src(0).x(), disable_swizzle_as_dst);
+				case (u32)opcode_t::rsq: return set_dst(base::rsqrt(src(0).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::ex2: return set_dst(base::exp2(src(0).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::lg2: return set_dst(base::log2(src(0).x()), disable_swizzle_as_dst);
 				case (u32)opcode_t::lit: return base::unimplemented("LIT");
 				case (u32)opcode_t::lrp: return base::unimplemented("LRP");
 				case (u32)opcode_t::str: return set_dst(1.0f);
 				case (u32)opcode_t::sfl: return set_dst(0.0f);
-				case (u32)opcode_t::cos: return set_dst(base::cos(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
-				case (u32)opcode_t::sin: return set_dst(base::sin(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode_t::cos: return set_dst(base::cos(src(0).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::sin: return set_dst(base::sin(src(0).x()), disable_swizzle_as_dst);
 				case (u32)opcode_t::pk2: return base::unimplemented("PK2");
 				case (u32)opcode_t::up2: return base::unimplemented("UP2");
 				case (u32)opcode_t::pow: return set_dst(base::pow(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
@@ -597,8 +637,8 @@ namespace rsx
 
 					return set_dst(float_point_t<4>::ctor(src_0.x() * src_1.x() + src_0.y() * src_1.y() + src(2).z()));
 				}
-				case (u32)opcode_t::txl: return set_dst(base::texture_lod(tex(), src(0).xy(), src(1).x()));
-				case (u32)opcode_t::txb: return set_dst(base::texture_bias(tex(), src(0).xy(), src(1).x()));
+				case (u32)opcode_t::txl: return set_dst(base::texture_lod(texture(), texture_coords().xy(), src(1).x()), allow_bx2);
+				case (u32)opcode_t::txb: return set_dst(base::texture_bias(texture(), texture_coords().xy(), src(1).x()), allow_bx2);
 				case (u32)opcode_t::texbem: return base::unimplemented("TEXBEM");
 				case (u32)opcode_t::txpbem: return base::unimplemented("TXPBEM");
 				case (u32)opcode_t::bemlum: return base::unimplemented("BEMLUM");
@@ -606,8 +646,8 @@ namespace rsx
 				case (u32)opcode_t::timeswtex: return base::unimplemented("TIMESWTEX");
 				case (u32)opcode_t::dp2: return set_dst(base::dot(src(0).xy(), src(1).xy()));
 				case (u32)opcode_t::nrm: return set_dst(base::normalize(src(0).xyz()).xyzx());
-				case (u32)opcode_t::div: return set_dst(src_swizzled_as_dst(0) / src_swizzled_as_dst(1), disable_swizzle_as_dst);
-				case (u32)opcode_t::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(src_swizzled_as_dst(1)), disable_swizzle_as_dst);
+				case (u32)opcode_t::div: return set_dst(src_swizzled_as_dst(0) / src(1).x(), disable_swizzle_as_dst);
+				case (u32)opcode_t::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(src(1).x()), disable_swizzle_as_dst);
 				case (u32)opcode_t::lif: return base::unimplemented("LIF");
 				case (u32)opcode_t::fenct: return base::comment("fenct");
 				case (u32)opcode_t::fencb: return base::comment("fencb");
@@ -639,7 +679,7 @@ namespace rsx
 				case (u32)opcode_t::ret: return conditional(typename base::void_expr("return;"));
 				}
 
-				throw;
+				throw std::runtime_error("bad instruction. (" + std::to_string(u32(instruction.data.dst.opcode) | (u32(instruction.data.src1.opcode_is_branch) << 6)) + ")");
 			}
 
 			decompiled_shader decompile(std::size_t offset, instruction_t* instructions)
@@ -657,16 +697,27 @@ namespace rsx
 
 					instruction = instructions[index].unpack();
 
-					base::writer += decode_instruction();
+					try
+					{
+						base::writer += decode_instruction();
+					}
+					catch (const std::runtime_error &ex)
+					{
+						base::writer += base::comment("exception: " + std::string(ex.what()));
+					}
 
 					if (instruction.data.dst.end)
+					{
+						context.offset += context.is_next_is_constant ? sizeof(instruction_t) * 2 : sizeof(instruction_t);
 						break;
+					}
 				}
 
 				context.program.entry_function = "func0";
 				base::writer.before(0, "void func0()\n{\n");
 				base::writer.after(base::writer.position, "}\n");
 				context.program.code = base::writer.finalize();
+				context.program.ucode_size = context.offset;
 
 				return context.program;
 			}

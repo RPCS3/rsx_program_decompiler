@@ -4,24 +4,24 @@ namespace rsx
 {
 	namespace fragment_program
 	{
-		const std::string input_attrib_map[16] =
+		const std::string input_attrib_names[16] =
 		{
-			"in_wpos", //0
-			"in_col0", //1
-			"in_col1", //2
-			"in_fogc", //3
-			"in_tex0", //4
-			"in_tex1", //5
-			"in_tex2", //6
-			"in_tex3", //7
-			"in_tex4", //8
-			"in_tex5", //9
-			"in_tex6", //10
-			"in_tex7", //11
-			"in_tex8", //12
-			"in_tex9", //13
-			"in_ssa", //14
-			"in_unk"  //15
+			"wpos", //0
+			"col0", //1
+			"col1", //2
+			"fogc", //3
+			"tex0", //4
+			"tex1", //5
+			"tex2", //6
+			"tex3", //7
+			"tex4", //8
+			"tex5", //9
+			"tex6", //10
+			"tex7", //11
+			"tex8", //12
+			"tex9", //13
+			"ssa", //14
+			"unk"  //15
 		};
 
 		const std::string instructions_names[128] =

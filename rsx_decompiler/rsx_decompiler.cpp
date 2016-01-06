@@ -55,7 +55,7 @@ namespace rsx
 			{
 				if (program.input_attributes & (1 << index))
 				{
-					result.code += "in vec4 " + rsx::fragment_program::input_attrib_map[index] + ";\n";
+					result.code += "in vec4 " + rsx::fragment_program::input_attrib_names[index] + ";\n";
 				}
 			}
 			break;
@@ -65,7 +65,7 @@ namespace rsx
 			{
 				if (program.input_attributes & (1 << index))
 				{
-					result.code += "in vec4 " + rsx::vertex_program::input_registers_table[index] + ";\n";
+					result.code += "in vec4 " + rsx::vertex_program::input_attrib_names[index] + ";\n";
 				}
 			}
 			break;

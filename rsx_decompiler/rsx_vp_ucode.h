@@ -58,7 +58,11 @@ namespace rsx
 			sne = 0x14,
 			str = 0x15,
 			ssg = 0x16,
-			txl = 0x19
+			arr = 0x17,
+			ara = 0x18,
+			txl = 0x19,
+			psh = 0x1a,
+			pop = 0x1b,
 		};
 
 		enum class src_register_type : u32
@@ -206,7 +210,8 @@ namespace rsx
 
 		std::uint64_t hash(const ucode_instr *ucode);
 
-		extern const std::string input_registers_table[0x10];
+		extern const std::string input_attrib_names[0x10];
+		extern const std::string output_attrib_names[22];
 		extern const std::string sca_op_names[0x20];
 		extern const std::string vec_op_names[0x20];
 	}

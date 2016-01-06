@@ -57,9 +57,10 @@ namespace rsx
 
 	struct register_info
 	{
+		std::string name;
+
 		int id;
 		register_type type;
-		std::string name;
 
 		bool operator==(const register_info& rhs) const
 		{
@@ -106,6 +107,7 @@ namespace rsx
 		std::string entry_function;
 		std::string code;
 
+		std::uint64_t ucode_size;
 		std::uint64_t ucode_hash;
 	};
 
