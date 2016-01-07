@@ -672,10 +672,8 @@ namespace rsx
 			}
 
 		public:
-			decompiled_shader decompile(std::size_t offset, instruction_t *instructions)
+			decompiled_shader decompile(std::size_t offset, const instruction_t *instructions)
 			{
-				context.program.ucode_size = 0;
-
 				for (std::size_t i = offset; i < 512; ++i, base::writer.next())
 				{
 					instruction = instructions[i].unpack();
@@ -688,8 +686,6 @@ namespace rsx
 					{
 						base::writer += base::comment("exception!");
 					}
-
-					context.program.ucode_size += sizeof(instruction_t);
 
 					if (instruction.data.d3.end)
 					{
@@ -707,20 +703,19 @@ namespace rsx
 		};
 
 		template<typename Language>
-		decompiled_shader decompile(std::size_t offset, ucode_instr *instructions)
+		decompiled_shader decompile(std::size_t offset, const void *instructions)
 		{
-			return decompiler<Language>{}.decompile(offset, (typename decompiler<Language>::instruction_t*)instructions);
+			return decompiler<Language>{}.decompile(offset, (const typename decompiler<Language>::instruction_t*)instructions);
 		}
 
-		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang)
+		decompiled_shader decompile(const raw_shader &shader, decompile_language lang)
 		{
 			decompiled_shader result;
 
 			switch (lang)
 			{
 			case decompile_language::glsl:
-				result = decompile<shader_code::glsl_language>(offset, instructions);
-
+				result = decompile<shader_code::glsl_language>(shader.offset, shader.ucode.data());
 				result.code_language = decompile_language::glsl;
 				break;
 
@@ -728,7 +723,6 @@ namespace rsx
 				throw;
 			}
 
-			result.type = program_type::vertex;
 			return result;
 		}
 	}

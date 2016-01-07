@@ -71,8 +71,6 @@ namespace shader_code
 				result.emplace_back(source.cbegin() + cursor_begin, source.cbegin() + cursor_end);
 
 				cursor_begin = cursor_end + 1;
-				cursor_end = cursor_begin - 1;
-				break;
 			}
 		}
 

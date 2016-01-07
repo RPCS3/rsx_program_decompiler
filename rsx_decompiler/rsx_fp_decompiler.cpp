@@ -109,7 +109,7 @@ namespace rsx
 					bool abs;
 				};
 
-				instruction_t unpack()
+				instruction_t unpack() const
 				{
 					instruction_t result;
 
@@ -682,7 +682,7 @@ namespace rsx
 				throw std::runtime_error("bad instruction. (" + std::to_string(u32(instruction.data.dst.opcode) | (u32(instruction.data.src1.opcode_is_branch) << 6)) + ")");
 			}
 
-			decompiled_shader decompile(std::size_t offset, instruction_t* instructions)
+			decompiled_shader decompile(std::size_t offset, const instruction_t* instructions)
 			{
 				context.offset = 0;
 				context.is_next_is_constant = false;
@@ -717,25 +717,24 @@ namespace rsx
 				base::writer.before(0, "void func0()\n{\n");
 				base::writer.after(base::writer.position, "}\n");
 				context.program.code = base::writer.finalize();
-				context.program.ucode_size = context.offset;
 
 				return context.program;
 			}
 		};
 
 		template<typename Language>
-		decompiled_shader decompile(std::size_t offset, ucode_instr *instructions)
+		decompiled_shader decompile(std::size_t offset, const void *instructions)
 		{
-			return decompiler<Language>{}.decompile(offset, (typename decompiler<Language>::instruction_t*)instructions);
+			return decompiler<Language>{}.decompile(offset, (const typename decompiler<Language>::instruction_t*)instructions);
 		}
 
-		decompiled_shader decompile(std::size_t offset, ucode_instr *instructions, decompile_language lang)
+		decompiled_shader decompile(const raw_shader &shader, decompile_language lang)
 		{
 			decompiled_shader result;
 			switch (lang)
 			{
 			case decompile_language::glsl:
-				result = decompile<shader_code::glsl_language>(offset, instructions);
+				result = decompile<shader_code::glsl_language>(shader.offset, shader.ucode.data());
 				result.code_language = decompile_language::glsl;
 				break;
 
@@ -743,7 +742,6 @@ namespace rsx
 				throw;
 			}
 
-			result.type = program_type::fragment;
 			return result;
 		}
 	}

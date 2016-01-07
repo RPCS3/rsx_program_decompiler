@@ -9,81 +9,119 @@ namespace rsx
 	const std::unordered_map<char, int> channel_to_index = { { 'x', 0 },{ 'y', 1 },{ 'z', 2 },{ 'w', 3 } };
 	const std::string mask = "xyzw";
 
-	complete_shader finalize_program(const decompiled_shader& program)
+	bool raw_shader::operator ==(const raw_shader &rhs) const
 	{
-		complete_shader result{ "#version 420\n\n" };
-
-		for (const constant_info& constant : program.constants)
+		if (ucode.size() != rhs.ucode.size())
 		{
-			result.code += "uniform vec4 " + constant.name + ";\n";
+			return false;
 		}
 
-		result.code += "\n";
-
-		for (const register_info& temporary : program.temporary_registers)
+		if (rhs.type == program_type::vertex)
 		{
-			std::string type;
-			switch (temporary.type)
+			return std::memcmp(ucode.data(), rhs.ucode.data(), ucode.size()) == 0;
+		}
+
+		const auto *src0 = (const fragment_program::ucode_instr*)rhs.ucode.data();
+		const auto *src1 = (const fragment_program::ucode_instr*)ucode.data();
+
+		while (true)
+		{
+			if (memcmp(src0, src1, sizeof(fragment_program::ucode_instr)) != 0)
 			{
-			case register_type::half_float_point:
-			case register_type::single_float_point:
-				type += "vec4";
+				return false;
+			}
+
+			if (src0->end())
+			{
 				break;
-
-			case register_type::integer:
-				type += "ivec4";
-				break;
-
-			default:
-				throw;
 			}
 
-			result.code += type + " " + temporary.name + " = " + type + "(0);\n";
+			int step = src0->has_constant() ? 2 : 1;
+
+			src0 += step;
+			src1 += step;
 		}
 
-		result.code += "\n";
+		return true;
+	}
 
-		for (const texture_info& texture : program.textures)
+	void analyze_raw_shader(raw_shader &shader)
+	{
+		std::uint64_t hash = 0xCBF29CE484222325ULL;
+		std::size_t size = 0;
+
+		if (shader.type == program_type::vertex)
 		{
-			result.code += "uniform sampler2D " + texture.name + ";\n";
-		}
+			using namespace vertex_program;
 
-		switch (program.type)
+			const ucode_instr *ptr = (const ucode_instr*)shader.ucode_ptr;
+
+			while (true)
+			{
+				hash ^= ptr->d0._u32 | (std::uint64_t(ptr->d1._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+
+				hash ^= ptr->d2._u32 | (std::uint64_t(ptr->d3._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+
+				size += sizeof(u32) * 4;
+
+				if (ptr->end())
+					break;
+
+				++ptr;
+			}
+		}
+		else
 		{
-		case program_type::fragment:
-			for (std::size_t index = 0; index < 16; ++index)
-			{
-				if (program.input_attributes & (1 << index))
-				{
-					result.code += "in vec4 " + rsx::fragment_program::input_attrib_names[index] + ";\n";
-				}
-			}
-			break;
+			using namespace fragment_program;
 
-		case program_type::vertex:
-			for (std::size_t index = 0; index < 16; ++index)
-			{
-				if (program.input_attributes & (1 << index))
-				{
-					result.code += "in vec4 " + rsx::vertex_program::input_attrib_names[index] + ";\n";
-				}
-			}
-			break;
+			const ucode_instr *ptr = (const ucode_instr*)shader.ucode_ptr;
 
-		default:
-			throw;
+			while (true)
+			{
+				hash ^= ptr->dst._u32 | (std::uint64_t(ptr->src0._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+
+				hash ^= ptr->src1._u32 | (std::uint64_t(ptr->src2._u32) << 32);
+				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
+
+				int step = ptr->has_constant() ? 2 : 1;
+
+				size += sizeof(u32) * 4 * step;
+
+				if (ptr->end())
+				{
+					break;
+				}
+
+				ptr += step;
+			}
 		}
 
-		result.code += "\n";
-		result.code += program.code;
+		shader.ucode.resize(size);
+		memcpy(shader.ucode.data(), shader.ucode_ptr, size);
+		shader.ucode_hash = hash;
+	}
 
-		result.code +=
-			R"(
-void main()
-{
-	)" + program.entry_function + R"(();
-}
-)";
-		return result;
+	namespace fragment_program
+	{
+		decompiled_shader decompile(const raw_shader &shader, decompile_language lang);
+	}
+
+	namespace vertex_program
+	{
+		decompiled_shader decompile(const raw_shader &shader, decompile_language lang);
+	}
+
+	decompiled_shader decompile(const rsx::raw_shader& shader, decompile_language lang)
+	{
+		switch (shader.type)
+		{
+		case program_type::vertex: return vertex_program::decompile(shader, lang);
+		case program_type::fragment: return fragment_program::decompile(shader, lang);
+		}
+
+		throw std::logic_error("");
 	}
 }

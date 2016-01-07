@@ -37,24 +37,5 @@ namespace rsx
 			"DP2", "NRM", "DIV", "DIVSQ", "LIF", "FENCT", "FENCB",
 			"NULL", "BRK", "CAL", "IFE", "LOOP", "REP", "RET"
 		};
-
-		std::uint64_t hash(const ucode_instr *ucode)
-		{
-			std::uint64_t hash = 0xCBF29CE484222325ULL;
-
-			for (const ucode_instr *ptr = ucode; !ptr->end(); ++ptr)
-			{
-				hash ^= ptr->dst._u32 | (std::uint64_t(ptr->src0._u32) << 32);
-				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
-
-				hash ^= ptr->src1._u32 | (std::uint64_t(ptr->src2._u32) << 32);
-				hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) + (hash << 8) + (hash << 40);
-
-				if (ptr->has_constant())
-					++ptr;
-			}
-
-			return hash;
-		}
 	}
 }

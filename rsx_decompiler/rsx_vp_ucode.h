@@ -208,8 +208,6 @@ namespace rsx
 			}
 		};
 
-		std::uint64_t hash(const ucode_instr *ucode);
-
 		extern const std::string input_attrib_names[0x10];
 		extern const std::string output_attrib_names[22];
 		extern const std::string sca_op_names[0x20];

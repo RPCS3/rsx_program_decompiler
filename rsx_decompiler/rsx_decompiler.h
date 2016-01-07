@@ -93,45 +93,100 @@ namespace rsx
 		fragment
 	};
 
+	struct raw_shader
+	{
+		const void *ucode_ptr;
+		std::size_t offset;
+
+		std::vector<uint8_t> ucode;
+		program_type type;
+		std::uint64_t ucode_hash;
+
+		std::uint64_t hash() const
+		{
+			return ucode_hash;
+		}
+
+		bool operator ==(const raw_shader &rhs) const;
+	};
+
+	struct program_state
+	{
+		union
+		{
+			struct
+			{
+				std::uint32_t output_attributes;
+				std::uint32_t ctrl;
+			};
+
+			std::uint64_t _u64;
+		};
+
+		bool operator ==(const program_state &rhs) const
+		{
+			return _u64 == rhs._u64;
+		}
+
+		std::uint64_t hash() const
+		{
+			return std::hash<std::uint64_t>()(_u64);
+		}
+	};
+
+	struct raw_program
+	{
+		raw_shader fragment_shader;
+		raw_shader vertex_shader;
+		program_state state;
+
+		std::uint64_t hash() const
+		{
+			return
+				fragment_shader.hash() ^
+				(vertex_shader.hash() << 1) ^
+				(state.hash() << 1);
+		}
+
+		bool operator == (const raw_program &rhs) const
+		{
+			return
+				state == rhs.state &&
+				vertex_shader == rhs.vertex_shader &&
+				fragment_shader == rhs.fragment_shader;
+		}
+	};
+
 	struct decompiled_shader
 	{
-		program_type type;
+		const raw_shader *raw;
 		decompile_language code_language;
 
 		std::unordered_set<constant_info, hasher> constants;
 		std::unordered_set<texture_info, hasher> textures;
 		std::unordered_set<register_info, hasher> temporary_registers;
-		unsigned int input_attributes = 0;
-		unsigned int output_attributes = 0;
+		std::uint32_t input_attributes = 0;
+		std::uint32_t output_attributes = 0;
 
 		std::string entry_function;
 		std::string code;
-
-		std::uint64_t ucode_size;
-		std::uint64_t ucode_hash;
 	};
 
 	struct complete_shader
 	{
+		const decompiled_shader *decompiled;
+		program_state state;
 		std::string code;
-		std::uint64_t ucode_hash;
+
+		void *user_data;
 	};
 
 	extern const std::string index_to_channel[4];
 	extern const std::unordered_map<char, int> channel_to_index;
 	extern const std::string mask;
 
-	complete_shader finalize_program(const decompiled_shader& program);
+	void analyze_raw_shader(raw_shader &shader);
 
-
-	namespace fragment_program
-	{
-		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
-	}
-
-	namespace vertex_program
-	{
-		decompiled_shader decompile(std::size_t offset, ucode_instr* instructions, decompile_language lang);
-	}
+	decompiled_shader decompile(const rsx::raw_shader& shader, decompile_language lang);
 }
 
