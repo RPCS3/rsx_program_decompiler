@@ -163,7 +163,7 @@ namespace shader_code
 
 				std::string new_mask;
 
-				using sw = std::string[]; sw{ (new_mask += mask.substr(channels, 1))... };
+				using sw = int[]; static_cast<void>(sw{ 0, (new_mask += mask.substr(channels, 1), 0)... });
 
 				return{ !is_single ? "(" + text + ")" : text, new_mask, is_single, base_count };
 			}
@@ -560,7 +560,7 @@ namespace shader_code
 			{
 				std::string result;
 
-				using sw = std::string[]; sw{ (result += (result.empty() ? "" : ", ") + args.finalize(false))..., "" };
+				using sw = int[]; static_cast<void>(sw{ 0, (result += (result.empty() ? "" : ", ") + args.finalize(false), 0)...});
 
 				return{ std::string(NameType::name) + "(" + result + ")" };
 			}
@@ -575,7 +575,7 @@ namespace shader_code
 			{
 				std::string result = std::string(NameType::name) + "(";
 
-				using sw = std::string[]; sw{ (result += args.to_string())..., "" };
+				using sw = int[]; static_cast<void>(sw{ 0, (result += args.to_string(), 0)...});
 
 				return{ result + ")" };
 			}
