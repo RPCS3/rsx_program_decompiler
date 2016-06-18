@@ -13,15 +13,19 @@
 template<typename DecompilerType>
 int process_ucode(const std::string& ipath, const std::string& opath)
 {
-	if (auto &ifile_stream = std::ifstream{ ipath, std::ios::binary | std::ios::ate })
+	std::ifstream ifile_stream{ ipath, std::ios::binary | std::ios::ate };
+
+	if (ifile_stream)
 	{
-		if (auto &ofile_stream = std::ofstream{ opath })
+		std::ofstream ofile_stream{ opath };
+
+		if (ofile_stream)
 		{
 			std::vector<char> buffer(ifile_stream.tellg());
 			ifile_stream.seekg(0);
 
 			ifile_stream.read(buffer.data(), buffer.size());
-			auto info = DecompilerType{ buffer.data(), (u32)buffer.size() }.decompile();
+			auto info = DecompilerType{ buffer.data(), static_cast<u32>(buffer.size()) }.decompile();
 			ofile_stream << info.text;
 
 			return 0;
@@ -35,21 +39,25 @@ int process_ucode(const std::string& ipath, const std::string& opath)
 
 int extract_ucode(const std::string& ipath, const std::string& opath)
 {
-	if (auto &ifile_stream = std::ifstream{ ipath, std::ios::binary | std::ios::ate })
+	std::ifstream ifile_stream{ ipath, std::ios::binary | std::ios::ate };
+
+	if (ifile_stream)
 	{
 		std::size_t input_size = ifile_stream.tellg();
 		ifile_stream.seekg(0, ifile_stream.beg);
 
-		if (auto &ofile_stream = std::ofstream{ opath, std::ios::binary })
+		std::ofstream ofile_stream{ opath, std::ios::binary };
+
+		if (ofile_stream)
 		{
 			std::vector<u8> buffer(input_size);
-			ifile_stream.read((char*)buffer.data(), buffer.size());
-			cg::CgBinaryProgram* program = (cg::CgBinaryProgram*)buffer.data();
+			ifile_stream.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+			auto program = reinterpret_cast<cg::CgBinaryProgram*>(buffer.data());
 
 			//swap endianess
 			{
-				endianness::be<u32> *be_ptr = (endianness::be<u32> *)(buffer.data() + program->ucode);
-				u32 *ne_ptr = (u32 *)be_ptr;
+				auto be_ptr = reinterpret_cast<endianness::be<u32> *>(buffer.data() + program->ucode);
+				auto ne_ptr = reinterpret_cast<u32 *>(be_ptr);
 
 				for (u32 i = 0, end = program->ucodeSize; i < end; i += sizeof(u32))
 				{
@@ -57,7 +65,7 @@ int extract_ucode(const std::string& ipath, const std::string& opath)
 				}
 			}
 
-			ofile_stream.write((char*)(buffer.data() + program->ucode), program->ucodeSize);
+			ofile_stream.write(reinterpret_cast<char*>(buffer.data() + program->ucode), program->ucodeSize);
 
 			return 0;
 		}
@@ -70,12 +78,13 @@ int extract_ucode(const std::string& ipath, const std::string& opath)
 
 int extract_objects_from_elf(const std::string& elf_path, const std::string& output_path, std::vector<std::string> objects_names)
 {
-	if (std::ifstream& ifile = std::ifstream(elf_path, std::ios::binary))
+	std::ifstream ifile{ elf_path, std::ios::binary };
+	if (ifile)
 	{
 		using namespace endianness;
 
 		elf64::ehdr ehdr;
-		ifile.read((char*)&ehdr, sizeof(elf64::ehdr));
+		ifile.read(reinterpret_cast<char*>(&ehdr), sizeof(elf64::ehdr));
 
 		endian data_endian = ehdr.e_ident.data_encoding == elf::elf_encoding::big_endian ? endian::big : endian::little;
 
@@ -88,7 +97,7 @@ int extract_objects_from_elf(const std::string& elf_path, const std::string& out
 
 		{
 			ifile.seekg(unpack(ehdr.e_shoff, data_endian));
-			ifile.read((char*)sections.data(), sections.size() * sizeof(elf64::shdr));
+			ifile.read(reinterpret_cast<char*>(sections.data()), sections.size() * sizeof(elf64::shdr));
 
 			for (auto &section : sections)
 			{
@@ -113,21 +122,22 @@ int extract_objects_from_elf(const std::string& elf_path, const std::string& out
 
 		std::vector<elf64::sym> syms(symcount);
 		ifile.seekg(symoffset);
-		ifile.read((char*)syms.data(), symcount * sizeof(elf64::sym));
+		ifile.read(reinterpret_cast<char*>(syms.data()), symcount * sizeof(elf64::sym));
 
-		if (std::ofstream& ofile = std::ofstream(output_path, std::ios::binary))
+		std::ofstream ofile{output_path, std::ios::binary};
+		if (ofile)
 		{
 			auto find_symbol = [&](const std::string& obj_name)
 			{
 				for (auto &sym : syms)
 				{
-					std::string name = syms_names.data() + unpack(sym.st_name, data_endian);
+					std::string name = syms_names.data() + endianness::unpack(sym.st_name, data_endian);
 
 					if (obj_name == name)
 					{
 						u16 shndx_ = unpack(sym.st_shndx, data_endian);
 
-						if (shndx_ == (u16)elf64::shndx::abs)
+						if (shndx_ == static_cast<u16>(elf64::shndx::abs))
 						{
 							return unpack(sym.st_value, data_endian);
 						}
@@ -182,7 +192,9 @@ void help()
 
 std::vector<char> load_file(const std::string& path)
 {
-	if (auto &file_stream = std::ifstream{ path, std::ios::binary | std::ios::ate })
+	std::ifstream file_stream{ path, std::ios::binary | std::ios::ate };
+
+	if (file_stream)
 	{
 		std::vector<char> result(file_stream.tellg());
 		file_stream.seekg(0);
@@ -283,7 +295,7 @@ void test(const std::string &shader)
 	auto glGetShaderInfoLog = (glGetShaderInfoLog_t)wglGetProcAddress("glGetShaderInfoLog");
 
 	const char *shader_text = shader.data();
-	const GLint length = (GLint)shader.length();
+	const GLint length = static_cast<GLint>(shader.length());
 
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &shader_text, &length);
@@ -315,6 +327,7 @@ void test(const std::string &shader)
 
 void print_info(const rsx::decompiled_shader& program)
 {
+	/*
 	//std::cout << "[RAW CODE]" << std::endl;
 	//std::cout << program.code;
 
@@ -326,6 +339,7 @@ void print_info(const rsx::decompiled_shader& program)
 #ifdef _DEBUG
 	test(complete_program.code);
 #endif
+	*/
 }
 
 int main(int argc, char** argv)
@@ -336,13 +350,13 @@ int main(int argc, char** argv)
 	extract_ucode("compiled.cg", "tmp.vp.ucode");
 
 	rsx::decompiled_shader program;
-
+	/*
 	if (0)
 	{
 		using namespace rsx::fragment_program;
 		std::vector<char> file = load_file("tmp.fp.ucode");
 
-		ucode_instr *instructions = (ucode_instr *)file.data();
+		auto instructions = reinterpret_cast<ucode_instr *>(file.data());
 		program = decompile(0, instructions, rsx::decompile_language::glsl);
 	}
 	else
@@ -350,11 +364,12 @@ int main(int argc, char** argv)
 		using namespace rsx::vertex_program;
 		std::vector<char> file = load_file("tmp.vp.ucode");
 
-		ucode_instr *instructions = (ucode_instr *)file.data();
+		auto instructions = reinterpret_cast<ucode_instr *>(file.data());
 		program = rsx::vertex_program::decompile(0, instructions, rsx::decompile_language::glsl);
 	}
 
 	print_info(program);
+	*/
 	/*
 	if (argc != 4)
 	{

@@ -14,7 +14,7 @@ namespace rsx
 			"in_tc4", "in_tc5", "in_tc6", "in_tc7"
 		};
 
-		static const std::string output_attrib_names[22] =
+		const std::string output_attrib_names[22] =
 		{
 			"front_diffuse_color",
 			"front_specular_color",

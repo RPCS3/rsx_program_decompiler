@@ -4,8 +4,6 @@
 #include <map>
 #include "../rsx_program_decompiler/endianness.h"
 
-using namespace endianness;
-
 namespace rsx
 {
 	namespace fragment_program
@@ -113,10 +111,10 @@ namespace rsx
 				{
 					instruction_t result;
 
-					(be_t<u32>&)result.data.dst._u32 = (data.dst._u32 << 16) | (data.dst._u32 >> 16);
-					(be_t<u32>&)result.data.src0._u32 = (data.src0._u32 << 16) | (data.src0._u32 >> 16);
-					(be_t<u32>&)result.data.src1._u32 = (data.src1._u32 << 16) | (data.src1._u32 >> 16);
-					(be_t<u32>&)result.data.src2._u32 = (data.src2._u32 << 16) | (data.src2._u32 >> 16);
+					(endianness::be_t<u32>&)result.data.dst._u32 = (data.dst._u32 << 16) | (data.dst._u32 >> 16);
+					(endianness::be_t<u32>&)result.data.src0._u32 = (data.src0._u32 << 16) | (data.src0._u32 >> 16);
+					(endianness::be_t<u32>&)result.data.src1._u32 = (data.src1._u32 << 16) | (data.src1._u32 >> 16);
+					(endianness::be_t<u32>&)result.data.src2._u32 = (data.src2._u32 << 16) | (data.src2._u32 >> 16);
 
 					return result;
 				}

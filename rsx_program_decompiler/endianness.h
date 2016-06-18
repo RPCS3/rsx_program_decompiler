@@ -101,11 +101,11 @@ namespace endianness
 
 		void pack(type value)
 		{
-			m_packed_value = EndiannessImpl::pack<storage_type>(value);
+			m_packed_value = EndiannessImpl::template pack<storage_type>(value);
 		}
 
 	public:
-		constexpr endianness_t(type value) : m_packed_value(EndiannessImpl::pack<storage_type>(value))
+		constexpr endianness_t(type value) : m_packed_value(EndiannessImpl::template pack<storage_type>(value))
 		{
 		}
 
@@ -191,12 +191,12 @@ namespace endianness
 
 	template<typename T> constexpr T unpack(const unknown_endian_t<T>& data, endian endian)
 	{
-		return endian == native_endianness ? data.packed_data : (T)swap((simple_type_for_t<T>)data.packed_data);
+		return endian == native_endianness ? data.packed_data : static_cast<T>(swap(static_cast<simple_type_for_t<T>>(data.packed_data)));
 	}
 
 	template<typename T> constexpr unknown_endian_t<T> pack(T value, endian endian = native_endianness)
 	{
-		return{ endian == native_endianness ? value : (T)swap((simple_type_for_t<T>)value) };
+		return{ endian == native_endianness ? value : static_cast<T>(swap(static_cast<simple_type_for_t<T>>(value))) };
 	}
 
 	template<typename T> void pack(unknown_endian_t<T>& resut, T value, endian endian = native_endianness)
