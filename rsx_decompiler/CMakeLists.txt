@@ -10,7 +10,7 @@ Else()
 EndIf()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fexceptions")
-include_directories(${SOURCE_DIR})
+include_directories(${SOURCE_DIR} "${SOURCE_DIR}/../shader_code/")
 
 file(GLOB_RECURSE SOURCE_FILES "${SOURCE_DIR}/*.cpp")
 
