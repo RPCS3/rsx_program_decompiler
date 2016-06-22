@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include <cstring>
 
 namespace rsx
 {
@@ -110,27 +111,69 @@ namespace rsx
 		bool operator ==(const raw_shader &rhs) const;
 	};
 
-	struct program_state
-	{
-		union
-		{
-			struct
-			{
-				std::uint32_t output_attributes;
-				std::uint32_t ctrl;
-			};
+	template<std::size_t Size = sizeof(std::size_t)>
+	struct fnv_1a;
 
-			std::uint64_t _u64;
-		};
+	template<>
+	struct fnv_1a<8>
+	{
+		static const std::size_t offset_basis = size_t(14695981039346656037ULL);
+		static const std::size_t prime = size_t(1099511628211ULL);
+	};
+
+	template<>
+	struct fnv_1a<4>
+	{
+		static const std::size_t offset_basis = size_t(2166136261);
+		static const std::size_t prime = size_t(16777619);
+	};
+
+	struct fnv_1a_hasher
+	{
+		static std::size_t hash(const std::uint8_t* raw, std::size_t size)
+		{
+			std::size_t result = fnv_1a<>::offset_basis;
+
+			for (std::size_t byte = 0; byte < size; ++byte)
+			{
+				result ^= (std::size_t)raw[byte];
+				result *= fnv_1a<>::prime;
+			}
+
+			return result;
+		}
+
+		template<typename Type>
+		static std::size_t hash(const Type& value)
+		{
+			return hash((const uint8_t*)&value, sizeof(Type));
+		}
+
+		template<typename Type>
+		std::size_t operator()(const Type& value) const
+		{
+			return hash(value);
+		}
+	};
+
+	struct alignas(8) program_state
+	{
+		std::uint32_t input_attributes;
+		std::uint32_t output_attributes;
+		std::uint32_t ctrl;
+		std::uint32_t divider_op;
+		std::uint32_t is_array;
+		std::uint32_t is_int;
+		std::uint16_t frequency[16];
 
 		bool operator ==(const program_state &rhs) const
 		{
-			return _u64 == rhs._u64;
+			return std::memcmp(this, &rhs, sizeof(*this)) == 0;
 		}
 
 		std::uint64_t hash() const
 		{
-			return std::hash<std::uint64_t>()(_u64);
+			return fnv_1a_hasher()(*this);
 		}
 	};
 
