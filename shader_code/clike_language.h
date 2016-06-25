@@ -650,6 +650,15 @@ namespace shader_code
 			function_ddy
 		};
 
+		enum predefined_function_class_t
+		{
+			predefined_function_texture_fetch,
+			predefined_function_texture_bias_fetch,
+			predefined_function_texture_lod_fetch,
+			predefined_function_texture_proj_fetch,
+			predefined_function_texture_grad_fetch
+		};
+
 		template<typename Type>
 		static expression_t<(type_class_t)Type::type, Type::count> expression(const std::string& text, bool is_single = true)
 		{

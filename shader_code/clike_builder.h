@@ -9,6 +9,40 @@ namespace shader_code
 	{
 		using language = Language;
 
+
+		template<clike_language::predefined_function_class_t Function>
+		struct predefined_function_name_t;
+
+		template<>
+		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_fetch>
+		{
+			static constexpr auto name = "texture_fetch";
+		};
+
+		template<>
+		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_bias_fetch>
+		{
+			static constexpr auto name = "texture_bias_fetch";
+		};
+
+		template<>
+		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_lod_fetch>
+		{
+			static constexpr auto name = "texture_lod_fetch";
+		};
+
+		template<>
+		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_proj_fetch>
+		{
+			static constexpr auto name = "texture_proj_fetch";
+		};
+
+		template<>
+		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_grad_fetch>
+		{
+			static constexpr auto name = "texture_grad_fetch";
+		};
+
 		template<clike_language::type_class_t Type, int Count>
 		struct type_helper_t : public clike_language::type_t<Type, Count>
 		{
@@ -352,6 +386,28 @@ namespace shader_code
 		static expression_from<float_point_t<Count>> ddy(const expression_t<clike_language::type_class_t::type_float, Count>& arg)
 		{
 			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_ddy>>::invoke(arg);
+		}
+
+		//predefined functions
+		static expression_from<float_point_t<4>> texture_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0)
+		{
+			return function_t<float_point_t<4>, predefined_function_name_t<predefined_function_class_t::predefined_function_texture_fetch>>::invoke(texture, arg0);
+		}
+		static expression_from<float_point_t<4>> texture_bias_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0, const expression_from<float_point_t<1>>& arg1)
+		{
+			return function_t<float_point_t<4>, predefined_function_name_t<predefined_function_class_t::predefined_function_texture_bias_fetch>>::invoke(texture, arg0, arg1);
+		}
+		static expression_from<float_point_t<4>> texture_grad_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0, const expression_from<float_point_t<4>>& arg1, const expression_from<float_point_t<4>>& arg2)
+		{
+			return function_t<float_point_t<4>, predefined_function_name_t<predefined_function_class_t::predefined_function_texture_grad_fetch>>::invoke(texture, arg0, arg1, arg2);
+		}
+		static expression_from<float_point_t<4>> texture_lod_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0, const expression_from<float_point_t<1>>& arg1)
+		{
+			return function_t<float_point_t<4>, predefined_function_name_t<predefined_function_class_t::predefined_function_texture_lod_fetch>>::invoke(texture, arg0, arg1);
+		}
+		static expression_from<float_point_t<4>> texture_proj_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0, const expression_from<float_point_t<1>>& arg1)
+		{
+			return function_t<float_point_t<4>, predefined_function_name_t<predefined_function_class_t::predefined_function_texture_proj_fetch>>::invoke(texture, arg0, arg1);
 		}
 	};
 }

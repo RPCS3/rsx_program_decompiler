@@ -156,7 +156,16 @@ namespace rsx
 		}
 	};
 
-	struct alignas(8) program_state
+	enum class texture_target : std::uint8_t
+	{
+		none,
+		_1,
+		_2,
+		_3,
+		cube
+	};
+
+	struct alignas(4) program_state
 	{
 		std::uint32_t input_attributes;
 		std::uint32_t output_attributes;
@@ -165,6 +174,7 @@ namespace rsx
 		std::uint32_t is_array;
 		std::uint32_t is_int;
 		std::uint16_t frequency[16];
+		texture_target textures[16];
 
 		bool operator ==(const program_state &rhs) const
 		{

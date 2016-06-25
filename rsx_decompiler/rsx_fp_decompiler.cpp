@@ -19,6 +19,9 @@ namespace rsx
 			template<int Count>
 			using float_point_expr = typename base::template float_point_expr<Count>;
 
+			template<int Count>
+			using integer_expr = typename base::template integer_expr<Count>;
+
 			using sampler2D_expr = typename base::template expression_from<typename base::sampler2D_t>;
 
 			template<int Count>
@@ -69,15 +72,22 @@ namespace rsx
 				{
 					texture_info info;
 					info.id = index;
-					info.name = "texture" + std::to_string(index);
+					info.name = "ftexture" + std::to_string(index);
 					program.textures.insert(info);
 
 					return info.name;
 				}
 
+				integer_expr<1> texture_index(int index)
+				{
+					texture(index);
+
+					return index;
+				}
+
 				float_point_expr<4> texture_coords_modifier(int index)
 				{
-					return{ "texture" + std::to_string(index) + "_cm" };
+					return{ "ftexture" + std::to_string(index) + "_cm" };
 				}
 
 				float_point_expr<4> input(int index)
@@ -199,6 +209,11 @@ namespace rsx
 				sampler2D_expr texture(context_t& context) const
 				{
 					return context.texture(data.dst.tex_num);
+				}
+
+				integer_expr<1> texture_index(context_t& context) const
+				{
+					return context.texture_index(data.dst.tex_num);
 				}
 
 				float_point_expr<4> texture_coords_modifier(context_t& context) const
@@ -338,6 +353,11 @@ namespace rsx
 			sampler2D_expr texture()
 			{
 				return instruction.texture(context);
+			}
+
+			integer_expr<1> texture_index()
+			{
+				return instruction.texture_index(context);
 			}
 
 			float_point_expr<4> texture_coords(int src_index = 0)
@@ -605,9 +625,9 @@ namespace rsx
 				case (u32)opcode_t::up4: return base::unimplemented("UP4");
 				//case (u32)opcode_t::ddx: return set_dst(base::ddx(src(0).xy()), disable_swizzle_as_dst);
 				//case (u32)opcode_t::ddy: return set_dst(base::ddy(src(0).xy()), disable_swizzle_as_dst);
-				case (u32)opcode_t::tex: return set_dst(base::texture(texture(), texture_coords().xy()), allow_bx2);
-				case (u32)opcode_t::txp: return set_dst(base::texture(texture(), texture_coords().xy() / src(0).w()), allow_bx2);
-				case (u32)opcode_t::txd: return set_dst(base::texture_grad(texture(), texture_coords().xy(), src(1).xy(), src(2).xy()), allow_bx2);
+				case (u32)opcode_t::tex: return set_dst(base::texture_fetch(texture_index(), texture_coords()), allow_bx2);
+				case (u32)opcode_t::txp: return set_dst(base::texture_fetch(texture_index(), texture_coords() / src(0).w()), allow_bx2);
+				case (u32)opcode_t::txd: return set_dst(base::texture_grad_fetch(texture_index(), texture_coords(), src(1), src(2)), allow_bx2);
 				case (u32)opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src(0).x(), disable_swizzle_as_dst);
 				case (u32)opcode_t::rsq: return set_dst(base::rsqrt(src(0).x()), disable_swizzle_as_dst);
 				case (u32)opcode_t::ex2: return set_dst(base::exp2(src(0).x()), disable_swizzle_as_dst);
@@ -635,8 +655,8 @@ namespace rsx
 
 					return set_dst(float_point_t<4>::ctor(src_0.x() * src_1.x() + src_0.y() * src_1.y() + src(2).z()));
 				}
-				case (u32)opcode_t::txl: return set_dst(base::texture_lod(texture(), texture_coords().xy(), src(1).x()), allow_bx2);
-				case (u32)opcode_t::txb: return set_dst(base::texture_bias(texture(), texture_coords().xy(), src(1).x()), allow_bx2);
+				case (u32)opcode_t::txl: return set_dst(base::texture_lod_fetch(texture_index(), texture_coords(), src(1).x()), allow_bx2);
+				case (u32)opcode_t::txb: return set_dst(base::texture_bias_fetch(texture_index(), texture_coords(), src(1).x()), allow_bx2);
 				case (u32)opcode_t::texbem: return base::unimplemented("TEXBEM");
 				case (u32)opcode_t::txpbem: return base::unimplemented("TXPBEM");
 				case (u32)opcode_t::bemlum: return base::unimplemented("BEMLUM");
