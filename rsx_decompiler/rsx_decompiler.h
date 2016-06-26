@@ -173,6 +173,10 @@ namespace rsx
 		std::uint32_t divider_op;
 		std::uint32_t is_int;
 		std::uint16_t frequency[16];
+		std::uint32_t fog_mode;
+		std::uint32_t alpha_func;
+		std::uint8_t textures_alpha_kill[16];
+		std::uint32_t textures_zfunc[16];
 		texture_target textures[16];
 
 		bool operator ==(const program_state &rhs) const

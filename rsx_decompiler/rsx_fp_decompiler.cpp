@@ -368,7 +368,7 @@ namespace rsx
 			template<typename ExprType>
 			typename base::void_expr conditional(const ExprType& expr)
 			{
-				bool need_condition = false;
+				bool need_condition = true;
 
 				if (need_condition)
 				{
