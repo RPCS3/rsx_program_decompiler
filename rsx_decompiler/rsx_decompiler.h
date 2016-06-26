@@ -171,7 +171,6 @@ namespace rsx
 		std::uint32_t output_attributes;
 		std::uint32_t ctrl;
 		std::uint32_t divider_op;
-		std::uint32_t is_array;
 		std::uint32_t is_int;
 		std::uint16_t frequency[16];
 		texture_target textures[16];
