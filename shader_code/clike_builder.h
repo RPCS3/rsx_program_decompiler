@@ -4,44 +4,52 @@
 
 namespace shader_code
 {
+	enum predefined_function_class_t
+	{
+		predefined_function_texture_fetch,
+		predefined_function_texture_bias_fetch,
+		predefined_function_texture_lod_fetch,
+		predefined_function_texture_proj_fetch,
+		predefined_function_texture_grad_fetch
+	};
+
+	template<predefined_function_class_t Function>
+	struct predefined_function_name_t;
+
+	template<>
+	struct predefined_function_name_t<predefined_function_class_t::predefined_function_texture_fetch>
+	{
+		static constexpr auto name = "texture_fetch";
+	};
+
+	template<>
+	struct predefined_function_name_t<predefined_function_class_t::predefined_function_texture_bias_fetch>
+	{
+		static constexpr auto name = "texture_bias_fetch";
+	};
+
+	template<>
+	struct predefined_function_name_t<predefined_function_class_t::predefined_function_texture_lod_fetch>
+	{
+		static constexpr auto name = "texture_lod_fetch";
+	};
+
+	template<>
+	struct predefined_function_name_t<predefined_function_class_t::predefined_function_texture_proj_fetch>
+	{
+		static constexpr auto name = "texture_proj_fetch";
+	};
+
+	template<>
+	struct predefined_function_name_t<predefined_function_class_t::predefined_function_texture_grad_fetch>
+	{
+		static constexpr auto name = "texture_grad_fetch";
+	};
+
 	template<typename Language>
 	struct clike_builder : public clike_language, public builder
 	{
 		using language = Language;
-
-
-		template<clike_language::predefined_function_class_t Function>
-		struct predefined_function_name_t;
-
-		template<>
-		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_fetch>
-		{
-			static constexpr auto name = "texture_fetch";
-		};
-
-		template<>
-		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_bias_fetch>
-		{
-			static constexpr auto name = "texture_bias_fetch";
-		};
-
-		template<>
-		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_lod_fetch>
-		{
-			static constexpr auto name = "texture_lod_fetch";
-		};
-
-		template<>
-		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_proj_fetch>
-		{
-			static constexpr auto name = "texture_proj_fetch";
-		};
-
-		template<>
-		struct predefined_function_name_t<clike_language::predefined_function_class_t::predefined_function_texture_grad_fetch>
-		{
-			static constexpr auto name = "texture_grad_fetch";
-		};
 
 		template<clike_language::type_class_t Type, int Count>
 		struct type_helper_t : public clike_language::type_t<Type, Count>

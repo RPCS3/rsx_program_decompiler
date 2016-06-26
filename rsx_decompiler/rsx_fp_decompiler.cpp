@@ -158,7 +158,7 @@ namespace rsx
 						arg_mask += arg.mask[channel_to_index.at(channel)];
 					}
 
-					return float_point_expr<4>(arg.text, arg_mask, arg.is_single, arg.base_count);
+					return float_point_expr<4>(arg.text, arg_mask, arg.is_single, 4);
 				}
 
 				float_point_expr<4> src(context_t& context, int index, bool is_swizzle_as_dst = false) const
