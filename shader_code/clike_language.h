@@ -562,7 +562,7 @@ namespace shader_code
 
 				using sw = int[]; static_cast<void>(sw{ 0, (result += (result.empty() ? "" : ", ") + args.finalize(false), 0)...});
 
-				return{ std::string(NameType::name) + "(" + result + ")" };
+				return{ std::string(NameType::name) + "(" + result + ")", true, return_type::count };
 			}
 		};
 

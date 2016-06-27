@@ -491,15 +491,18 @@ namespace rsx
 						if (instruction.data.dst.mask_z) condition_map[cond.mask[2]].push_back({ 2, channel_index++ });
 						if (instruction.data.dst.mask_w) condition_map[cond.mask[3]].push_back({ 3, channel_index });
 
-						auto src = apply_instruction_modifiers(arg);
+						float_point_expr<4> src;
 
 						if (flags & disable_swizzle_as_dst)
 						{
-							if (src.mask.size() != dest.mask.size())
-								src.assign(float_point_expr<4>(arg.text, arg.mask, true, (int)dest.mask.size()));
-							else
-								src.assign(src.without_scope());
+							src.assign(arg.without_scope());
 						}
+						else
+						{
+							src.assign(arg);
+						}
+
+						src.assign(apply_instruction_modifiers(src));
 
 						for (auto &entry : condition_map)
 						{
