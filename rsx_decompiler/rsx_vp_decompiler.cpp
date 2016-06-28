@@ -74,6 +74,13 @@ namespace rsx
 					return info.name;
 				}
 
+				integer_expr<1> texture_index(int index)
+				{
+					texture(index);
+
+					return index;
+				}
+
 				float_point_expr<4> output(u32 index)
 				{
 					program.output_attributes |= (1 << index);
@@ -193,6 +200,11 @@ namespace rsx
 			sampler2D_expr texture()
 			{
 				return context.texture(instruction.unpack_src(0).tmp_src & 0x3);
+			}
+
+			integer_expr<1> texture_index()
+			{
+				return context.texture_index(instruction.unpack_src(0).tmp_src & 0x3);
 			}
 
 			float_point_expr<4> src(int index, bool is_swizzle_as_dst = false)
@@ -639,7 +651,7 @@ namespace rsx
 				case (u32)vec_opcode_t::txl:
 				{
 					auto src_1 = src(1);
-					return set_dst(base::texture_lod(texture(), src_1.xy(), src_1.w()));
+					return set_dst(base::texture_lod_fetch(texture_index(), src_1, src_1.w()));
 				}
 
 				default:

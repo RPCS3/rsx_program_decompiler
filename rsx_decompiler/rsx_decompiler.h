@@ -178,6 +178,7 @@ namespace rsx
 		std::uint8_t textures_alpha_kill[16];
 		std::uint32_t textures_zfunc[16];
 		texture_target textures[16];
+		texture_target vertex_textures[4];
 
 		bool operator ==(const program_state &rhs) const
 		{
