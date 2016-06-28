@@ -368,14 +368,12 @@ namespace rsx
 			template<typename ExprType>
 			typename base::void_expr conditional(const ExprType& expr)
 			{
-				bool need_condition = true;
-
-				if (need_condition)
+				if (instruction.data.src0.exec_if_gr && instruction.data.src0.exec_if_eq && instruction.data.src0.exec_if_gr)
 				{
-					return base::if_(base::any(execution_condition(condition_operation::any)), expr);
+					return expr;
 				}
 
-				return expr;
+				return base::if_(execution_condition(condition_operation::any), expr);
 			}
 
 			enum set_dst_flags
