@@ -30,6 +30,9 @@ namespace rsx
 			template<int Count>
 			using boolean_t = typename base::template boolean_t<Count>;
 
+			template<int Count>
+			using integer_t = typename base::template integer_t<Count>;
+
 			struct context_t
 			{
 				decompiled_shader program;
@@ -573,6 +576,11 @@ namespace rsx
 				}
 			}
 
+			builder::writer_t set_dst(const integer_expr<1>& arg, u32 flags = none)
+			{
+				return set_dst(float_point_t<1>::ctor(arg), flags);
+			}
+
 			builder::writer_t set_dst(const boolean_expr<4>& arg, u32 flags = none)
 			{
 				std::string arg_string;
@@ -591,6 +599,12 @@ namespace rsx
 				}
 
 				return set_dst(float_point_expr<4>{ arg_string, std::string("xyzw"), is_single, 4 }, flags);
+			}
+
+			template<typename Type>
+			Type make_not_zero(Type arg)
+			{
+				return base::max(base::abs(arg), float_point_t<Type::type::count>::ctor(1e-15f)) * base::sign(arg);
 			}
 
 			builder::expression_base_t decode_instruction()
@@ -622,30 +636,38 @@ namespace rsx
 				case (u32)opcode_t::frc: return set_dst(base::fract(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case (u32)opcode_t::flr: return set_dst(base::floor(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case (u32)opcode_t::kil: return conditional(typename base::void_expr{ "discard;" });
-				case (u32)opcode_t::pk4: return base::unimplemented("PK4");
-				case (u32)opcode_t::up4: return base::unimplemented("UP4");
-				//case (u32)opcode_t::ddx: return set_dst(base::ddx(src(0).xy()), disable_swizzle_as_dst);
-				//case (u32)opcode_t::ddy: return set_dst(base::ddy(src(0).xy()), disable_swizzle_as_dst);
+				case (u32)opcode_t::pk4: return set_dst(base::pack_snorm_4x8(src(0)));
+				case (u32)opcode_t::up4: return set_dst(base::unpack_snorm_4x8(integer_t<1>::ctor(src(0).x())));
+				case (u32)opcode_t::ddx: return set_dst(base::ddx(src(0).xy()).xyxy(), disable_swizzle_as_dst);
+				case (u32)opcode_t::ddy: return set_dst(base::ddy(src(0).xy()).xyxy(), disable_swizzle_as_dst);
 				case (u32)opcode_t::tex: return set_dst(base::texture_fetch(texture_index(), texture_coords()), allow_bx2);
 				case (u32)opcode_t::txp: return set_dst(base::texture_fetch(texture_index(), texture_coords() / src(0).w()), allow_bx2);
 				case (u32)opcode_t::txd: return set_dst(base::texture_grad_fetch(texture_index(), texture_coords(), src(1), src(2)), allow_bx2);
-				case (u32)opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src(0).x(), disable_swizzle_as_dst);
-				case (u32)opcode_t::rsq: return set_dst(base::rsqrt(src(0).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / make_not_zero(src(0).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::rsq: return set_dst(base::rsqrt(make_not_zero(src(0).x())), disable_swizzle_as_dst);
 				case (u32)opcode_t::ex2: return set_dst(base::exp2(src(0).x()), disable_swizzle_as_dst);
-				case (u32)opcode_t::lg2: return set_dst(base::log2(src(0).x()), disable_swizzle_as_dst);
-				case (u32)opcode_t::lit: return base::unimplemented("LIT");
-				case (u32)opcode_t::lrp: return base::unimplemented("LRP");
-				case (u32)opcode_t::str: return set_dst(1.0f);
-				case (u32)opcode_t::sfl: return set_dst(0.0f);
+				case (u32)opcode_t::lg2: return set_dst(base::log2(make_not_zero(src(0).x())), disable_swizzle_as_dst);
+				case (u32)opcode_t::lit:
+				{
+					auto t = src(0);
+
+					float_point_expr<1> z_value{ (t.x() > 0.0f).text };
+					z_value.assign("(" + z_value.text + " ? " + base::exp2(t.w() * base::log2(make_not_zero(t.y()))).text + " : 0.0)");
+
+					return set_dst(float_point_t<4>::ctor(1.0f, t.x(), z_value, 1.0f));
+				}
+				case (u32)opcode_t::lrp: return set_dst(src(2) * (float_point_t<4>::ctor(1.0f) - src(0) + (src(1) * src(0)).without_scope()));
+				case (u32)opcode_t::str: return set_dst(float_point_expr<1>{ 1.0f });
+				case (u32)opcode_t::sfl: return set_dst(float_point_expr<1>{ 0.0f });
 				case (u32)opcode_t::cos: return set_dst(base::cos(src(0).x()), disable_swizzle_as_dst);
 				case (u32)opcode_t::sin: return set_dst(base::sin(src(0).x()), disable_swizzle_as_dst);
-				case (u32)opcode_t::pk2: return base::unimplemented("PK2");
-				case (u32)opcode_t::up2: return base::unimplemented("UP2");
+				case (u32)opcode_t::pk2: return set_dst(base::pack_snorm_2x16(src(0).xy()));
+				case (u32)opcode_t::up2: return set_dst(base::unpack_snorm_2x16(integer_t<1>::ctor(src(0).x())).xyxy());
 				case (u32)opcode_t::pow: return set_dst(base::pow(src_swizzled_as_dst(0), src_swizzled_as_dst(1)), disable_swizzle_as_dst);
-				case (u32)opcode_t::pkb: return base::unimplemented("PKB");
-				case (u32)opcode_t::upb: return base::unimplemented("UPB");
-				case (u32)opcode_t::pk16: return base::unimplemented("PK16");
-				case (u32)opcode_t::up16: return base::unimplemented("UP16");
+				case (u32)opcode_t::pkb: return set_dst(base::pack_unorm_4x8(src(0)));
+				case (u32)opcode_t::upb: return set_dst(base::unpack_unorm_4x8(integer_t<1>::ctor(src(0).x())));
+				case (u32)opcode_t::pk16: return set_dst(base::pack_half_2x16(src(0).xy()));
+				case (u32)opcode_t::up16: return set_dst(base::unpack_half_2x16(integer_t<1>::ctor(src(0).x())).xyxy());
 				case (u32)opcode_t::bem: return base::unimplemented("BEM");
 				case (u32)opcode_t::pkg: return base::unimplemented("PKG");
 				case (u32)opcode_t::upg: return base::unimplemented("UPG");
@@ -661,13 +683,21 @@ namespace rsx
 				case (u32)opcode_t::texbem: return base::unimplemented("TEXBEM");
 				case (u32)opcode_t::txpbem: return base::unimplemented("TXPBEM");
 				case (u32)opcode_t::bemlum: return base::unimplemented("BEMLUM");
-				case (u32)opcode_t::refl: return base::unimplemented("REFL");
+				case (u32)opcode_t::refl: return set_dst(src(0) - ((float_point_expr<1>{ 2.0f } * base::dot(src(0), src(1))).without_scope() * src(1)).without_scope());
 				case (u32)opcode_t::timeswtex: return base::unimplemented("TIMESWTEX");
 				case (u32)opcode_t::dp2: return set_dst(base::dot(src(0).xy(), src(1).xy()));
 				case (u32)opcode_t::nrm: return set_dst(base::normalize(src(0).xyz()).xyzx());
-				case (u32)opcode_t::div: return set_dst(src_swizzled_as_dst(0) / src(1).x(), disable_swizzle_as_dst);
-				case (u32)opcode_t::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(src(1).x()), disable_swizzle_as_dst);
-				case (u32)opcode_t::lif: return base::unimplemented("LIF");
+				case (u32)opcode_t::div: return set_dst(src_swizzled_as_dst(0) / make_not_zero(src(1).x()), disable_swizzle_as_dst);
+				case (u32)opcode_t::divsq: return set_dst(src_swizzled_as_dst(0) / base::sqrt(make_not_zero(src(1).x())), disable_swizzle_as_dst);
+				case (u32)opcode_t::lif:
+				{
+					auto t = src(0);
+
+					float_point_expr<1> z_value{ (t.y() > 0.0f).text };
+					z_value.assign("(" + z_value.text + " ? " + base::pow(float_point_expr<1>{ 2.0f }, t.w()).text + " : 0.0)");
+
+					return set_dst(float_point_t<4>::ctor(1.0f, t.x(), z_value, 1.0f));
+				}
 				case (u32)opcode_t::fenct: return base::comment("fenct");
 				case (u32)opcode_t::fencb: return base::comment("fencb");
 				case (u32)opcode_t::brk: return conditional(typename base::void_expr("break;"));

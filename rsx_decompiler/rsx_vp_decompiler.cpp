@@ -562,6 +562,12 @@ namespace rsx
 				return expr;
 			}
 
+			template<typename Type>
+			Type make_not_zero(Type arg)
+			{
+				return base::max(base::abs(arg), float_point_t<Type::type::count>::ctor(1e-15f)) * base::sign(arg);
+			}
+
 			typename base::expression_base_t decode_sca_instruction()
 			{
 				is_vec = false;
@@ -569,17 +575,17 @@ namespace rsx
 				switch ((u32)instruction.data.d1.sca_opcode)
 				{
 				case (u32)sca_opcode_t::mov: return set_dst(src_swizzled_as_dst(2));
-				case (u32)sca_opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2));
-				case (u32)sca_opcode_t::rcc: return set_dst(base::clamp(float_point_t<1>::ctor(1.0f) / src_swizzled_as_dst(2), 5.42101e-20f, 1.884467e19f));
-				case (u32)sca_opcode_t::rsq: return set_dst(base::rsqrt(base::abs(src_swizzled_as_dst(2))));
+				case (u32)sca_opcode_t::rcp: return set_dst(float_point_t<1>::ctor(1.0f) / make_not_zero(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::rcc: return set_dst(base::clamp(float_point_t<1>::ctor(1.0f) / make_not_zero(src_swizzled_as_dst(2)), 5.42101e-20f, 1.884467e19f));
+				case (u32)sca_opcode_t::rsq: return set_dst(base::rsqrt(base::max(base::abs(src_swizzled_as_dst(2)), float_point_expr<4>{ "1e-15f" })));
 				case (u32)sca_opcode_t::exp: return set_dst(base::exp(src_swizzled_as_dst(2)));
-				case (u32)sca_opcode_t::log: return set_dst(base::log(src_swizzled_as_dst(2)));
+				case (u32)sca_opcode_t::log: return set_dst(base::log(make_not_zero(src_swizzled_as_dst(2))));
 				case (u32)sca_opcode_t::lit:
 				{
 					auto t = src(2);
 
 					float_point_expr<1> z_value{ (t.x() > 0.0f).text };
-					z_value.assign("(" + z_value.text + " ? " + base::exp2(t.w() * base::log2(t.y())).text + " : 0.0)");
+					z_value.assign("(" + z_value.text + " ? " + base::exp2(t.w() * base::log2(make_not_zero(t.y()))).text + " : 0.0)");
 
 					return set_dst(swizzle_as_dst(float_point_t<4>::ctor(1.0f, t.x(), z_value, 1.0f)));
 				}
@@ -631,14 +637,14 @@ namespace rsx
 				case (u32)vec_opcode_t::add: return set_dst(src_swizzled_as_dst(0) + src_swizzled_as_dst(2));
 				case (u32)vec_opcode_t::mad: return set_dst((src_swizzled_as_dst(0) * src_swizzled_as_dst(1)).without_scope() + src_swizzled_as_dst(2));
 				case (u32)vec_opcode_t::dp3: return set_dst(base::dot(src(0).xyz(), src(1).xyz()));
-				case (u32)vec_opcode_t::dph: return set_dst(base::dot(float_point_t<4>::ctor(src(0).xyz(), 1.0), src(1))); break;
+				case (u32)vec_opcode_t::dph: return set_dst(base::dot(float_point_t<4>::ctor(src(0).xyz(), 1.0), src(1)));
 				case (u32)vec_opcode_t::dp4: return set_dst(base::dot(src(0), src(1)));
-				case (u32)vec_opcode_t::dst: break;
+				case (u32)vec_opcode_t::dst: return set_dst(float_point_t<4>::ctor(1.0, src(0).y() * src(1).y(), src(0).z(), src(1).w()));
 				case (u32)vec_opcode_t::min: return set_dst(base::min(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode_t::arl: return typename base::writer_t{} += address_register() = integer_t<1>::ctor(src(0).x());
+				case (u32)vec_opcode_t::arl: return typename base::writer_t{} += address_register() = base::clamp(integer_t<1>::ctor(src(0).x()), -512, 511);
 				case (u32)vec_opcode_t::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
 				case (u32)vec_opcode_t::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
 				case (u32)vec_opcode_t::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
@@ -647,7 +653,7 @@ namespace rsx
 				case (u32)vec_opcode_t::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::str: return set_dst(1.0f);
-				case (u32)vec_opcode_t::ssg: break;
+				case (u32)vec_opcode_t::ssg: return set_dst(base::sign(src_swizzled_as_dst(0)));
 				case (u32)vec_opcode_t::txl:
 				{
 					auto src_1 = src(1);

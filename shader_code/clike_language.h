@@ -618,6 +618,7 @@ namespace shader_code
 		enum function_class_t
 		{
 			function_abs,
+			function_sign,
 			function_fract,
 			function_floor,
 			function_exp,
@@ -647,7 +648,15 @@ namespace shader_code
 			function_sqrt,
 			function_rsqrt,
 			function_ddx,
-			function_ddy
+			function_ddy,
+			function_pack_snorm_4x8,
+			function_unpack_snorm_4x8,
+			function_pack_unorm_4x8,
+			function_unpack_unorm_4x8,
+			function_pack_snorm_2x16,
+			function_unpack_snorm_2x16,
+			function_pack_half_2x16,
+			function_unpack_half_2x16,
 		};
 
 		template<typename Type>

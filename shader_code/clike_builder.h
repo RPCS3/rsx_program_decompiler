@@ -248,6 +248,12 @@ namespace shader_code
 		}
 
 		template<int Count>
+		static expression_from<float_point_t<Count>> sign(const expression_t<clike_language::type_class_t::type_float, Count>& arg)
+		{
+			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_sign>>::invoke(arg);
+		}
+
+		template<int Count>
 		static expression_from<float_point_t<Count>> abs(const expression_t<clike_language::type_class_t::type_float, Count>& arg)
 		{
 			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_abs>>::invoke(arg);
@@ -351,6 +357,11 @@ namespace shader_code
 			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_clamp>>::invoke(a, b, c);
 		}
 		template<int Count>
+		static expression_from<integer_t<Count>> clamp(const expression_t<clike_language::type_class_t::type_int, Count>& a, const expression_t<clike_language::type_class_t::type_int, 1>& b, const expression_t<clike_language::type_class_t::type_int, 1>& c)
+		{
+			return function_t<integer_t<Count>, typename language::template function_name_t<function_class_t::function_clamp>>::invoke(a, b, c);
+		}
+		template<int Count>
 		static expression_from<float_point_t<Count>> sqrt(const expression_t<clike_language::type_class_t::type_float, Count>& arg)
 		{
 			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_sqrt>>::invoke(arg);
@@ -395,6 +406,43 @@ namespace shader_code
 		{
 			return function_t<float_point_t<Count>, typename language::template function_name_t<function_class_t::function_ddy>>::invoke(arg);
 		}
+
+		static expression_from<integer_t<1>> pack_snorm_4x8(const expression_from<float_point_t<4>>& arg)
+		{
+			return function_t<integer_t<1>, typename language::template function_name_t<function_class_t::function_pack_snorm_4x8>>::invoke(arg);
+		}
+		static expression_from<float_point_t<4>> unpack_snorm_4x8(const expression_from<integer_t<1>>& arg)
+		{
+			return function_t<float_point_t<4>, typename language::template function_name_t<function_class_t::function_unpack_snorm_4x8>>::invoke(arg);
+		}
+
+		static expression_from<integer_t<1>> pack_unorm_4x8(const expression_from<float_point_t<4>>& arg)
+		{
+			return function_t<integer_t<1>, typename language::template function_name_t<function_class_t::function_pack_unorm_4x8>>::invoke(arg);
+		}
+		static expression_from<float_point_t<4>> unpack_unorm_4x8(const expression_from<integer_t<1>>& arg)
+		{
+			return function_t<float_point_t<4>, typename language::template function_name_t<function_class_t::function_unpack_unorm_4x8>>::invoke(arg);
+		}
+
+		static expression_from<integer_t<1>> pack_snorm_2x16(const expression_from<float_point_t<2>>& arg)
+		{
+			return function_t<integer_t<1>, typename language::template function_name_t<function_class_t::function_pack_snorm_2x16>>::invoke(arg);
+		}
+		static expression_from<float_point_t<2>> unpack_snorm_2x16(const expression_from<integer_t<1>>& arg)
+		{
+			return function_t<float_point_t<2>, typename language::template function_name_t<function_class_t::function_unpack_snorm_2x16>>::invoke(arg);
+		}
+
+		static expression_from<integer_t<1>> pack_half_2x16(const expression_from<float_point_t<2>>& arg)
+		{
+			return function_t<integer_t<1>, typename language::template function_name_t<function_class_t::function_pack_half_2x16>>::invoke(arg);
+		}
+		static expression_from<float_point_t<2>> unpack_half_2x16(const expression_from<integer_t<1>>& arg)
+		{
+			return function_t<float_point_t<2>, typename language::template function_name_t<function_class_t::function_unpack_half_2x16>>::invoke(arg);
+		}
+
 
 		//predefined functions
 		static expression_from<float_point_t<4>> texture_fetch(const expression_from<integer_t<1>>& texture, const expression_from<float_point_t<4>>& arg0)

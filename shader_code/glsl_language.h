@@ -110,6 +110,12 @@ namespace shader_code
 		};
 
 		template<>
+		struct function_name_t<clike_language::function_class_t::function_sign>
+		{
+			static constexpr auto name = "sign";
+		};
+
+		template<>
 		struct function_name_t<clike_language::function_class_t::function_normalize>
 		{
 			static constexpr auto name = "normalize";
@@ -287,6 +293,54 @@ namespace shader_code
 		struct function_name_t<clike_language::function_class_t::function_ddy>
 		{
 			static constexpr auto name = "dFdy";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_pack_snorm_4x8>
+		{
+			static constexpr auto name = "packSnorm4x8";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_unpack_snorm_4x8>
+		{
+			static constexpr auto name = "unpackSnorm4x8";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_pack_unorm_4x8>
+		{
+			static constexpr auto name = "packUnorm4x8";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_unpack_unorm_4x8>
+		{
+			static constexpr auto name = "unpackUnorm4x8";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_pack_snorm_2x16>
+		{
+			static constexpr auto name = "packSnorm2x16";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_unpack_snorm_2x16>
+		{
+			static constexpr auto name = "unpackSnorm2x16";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_pack_half_2x16>
+		{
+			static constexpr auto name = "packHalf2x16";
+		};
+
+		template<>
+		struct function_name_t<clike_language::function_class_t::function_unpack_half_2x16>
+		{
+			static constexpr auto name = "unpackHalf2x16";
 		};
 	}
 
