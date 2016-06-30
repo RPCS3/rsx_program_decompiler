@@ -648,11 +648,11 @@ namespace rsx
 				case (u32)vec_opcode_t::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
 				case (u32)vec_opcode_t::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
 				case (u32)vec_opcode_t::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode_t::sfl: return set_dst(0.0f);
+				case (u32)vec_opcode_t::sfl: return set_dst(float_point_expr<1>{ 0.0f });
 				case (u32)vec_opcode_t::sgt: return set_dst(compare(base::compare_function::greater, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));;
 				case (u32)vec_opcode_t::sle: return set_dst(compare(base::compare_function::less_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::sne: return set_dst(compare(base::compare_function::not_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode_t::str: return set_dst(1.0f);
+				case (u32)vec_opcode_t::str: return set_dst(float_point_expr<1>{ 1.0f });
 				case (u32)vec_opcode_t::ssg: return set_dst(base::sign(src_swizzled_as_dst(0)));
 				case (u32)vec_opcode_t::txl:
 				{
