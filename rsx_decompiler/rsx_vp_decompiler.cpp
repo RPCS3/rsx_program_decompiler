@@ -2,6 +2,7 @@
 #include <glsl_language.h>
 #include "rsx_decompiler_base.h"
 #include <map>
+#include <algorithm>
 
 namespace rsx
 {
@@ -31,6 +32,14 @@ namespace rsx
 
 			template<int Count>
 			using integer_t = typename base::template integer_t<Count>;
+
+			using type_class_t = typename base::type_class_t;
+
+			template<type_class_t Type, int Count>
+			using expression_t = typename base::template expression_t<Type, Count>;
+
+			template<type_class_t Type, int Count>
+			using type_t = typename base::template type_t<Type, Count>;
 
 			struct context_t
 			{
@@ -348,7 +357,8 @@ namespace rsx
 				never = 0
 			};
 
-			typename base::writer_t set_dst(float_point_expr<4> arg)
+			template<int Count, typename = std::enable_if_t<(Count > 1)>>
+			typename base::writer_t set_dst(expression_t<type_class_t::type_float, Count> arg)
 			{
 				auto dst_pair = destination_register();
 				bool has_dst = dst_pair.first;
@@ -562,10 +572,23 @@ namespace rsx
 				return expr;
 			}
 
-			template<typename Type>
-			Type make_not_zero(Type arg)
+			template<type_class_t Type, int Count>
+			expression_t<Type, Count> make_not_zero(const expression_t<Type, Count> &arg)
 			{
-				return base::max(base::abs(arg), float_point_t<Type::type::count>::ctor(1e-15f)) * base::sign(arg);
+				std::string expr = "1e-15";
+
+				switch (std::min<int>(Count, destination_swizzle().size()))
+				{
+				case 1: break;
+				case 2: expr = float_point_t<2>::ctor(boolean_expr<2>{ expr }).to_string(); break;
+				case 3: expr = float_point_t<3>::ctor(boolean_expr<3>{ expr }).to_string(); break;
+				case 4: expr = float_point_t<4>::ctor(boolean_expr<4>{ expr }).to_string(); break;
+
+				default:
+					throw std::logic_error("bad destination swizzle.");
+				}
+
+				return base::max(base::abs(arg), expression_t<Type, Count>{ expr }) * base::sign(arg);
 			}
 
 			typename base::expression_base_t decode_sca_instruction()

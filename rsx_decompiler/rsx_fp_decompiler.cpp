@@ -2,6 +2,7 @@
 #include "rsx_fp_ucode.h"
 #include <glsl_language.h>
 #include <map>
+#include <algorithm>
 #include "../rsx_program_decompiler/endianness.h"
 
 namespace rsx
@@ -32,6 +33,14 @@ namespace rsx
 
 			template<int Count>
 			using integer_t = typename base::template integer_t<Count>;
+
+			using type_class_t = typename base::type_class_t;
+
+			template<type_class_t Type, int Count>
+			using expression_t = typename base::template expression_t<Type, Count>;
+
+			template<type_class_t Type, int Count>
+			using type_t = typename base::template type_t<Type, Count>;
 
 			struct context_t
 			{
@@ -436,7 +445,8 @@ namespace rsx
 				return arg;
 			}
 
-			builder::writer_t set_dst(const float_point_expr<4>& arg, u32 flags = none)
+			template<int Count, typename = std::enable_if_t<(Count > 1)>>
+			builder::writer_t set_dst(expression_t<type_class_t::type_float, Count> arg, u32 flags = none)
 			{
 				builder::writer_t result;
 
@@ -576,9 +586,10 @@ namespace rsx
 				}
 			}
 
-			builder::writer_t set_dst(const integer_expr<1>& arg, u32 flags = none)
+			template<int Count>
+			builder::writer_t set_dst(const expression_t<type_class_t::type_int, Count>& arg, u32 flags = none)
 			{
-				return set_dst(float_point_t<1>::ctor(arg), flags);
+				return set_dst(float_point_t<Count>::ctor(arg), flags);
 			}
 
 			builder::writer_t set_dst(const boolean_expr<4>& arg, u32 flags = none)
@@ -601,10 +612,23 @@ namespace rsx
 				return set_dst(float_point_expr<4>{ arg_string, std::string("xyzw"), is_single, 4 }, flags);
 			}
 
-			template<typename Type>
-			Type make_not_zero(Type arg)
+			template<type_class_t Type, int Count>
+			expression_t<Type, Count> make_not_zero(const expression_t<Type, Count> &arg)
 			{
-				return base::max(base::abs(arg), float_point_t<Type::type::count>::ctor(1e-15f)) * base::sign(arg);
+				std::string expr = "1e-15";
+
+				switch (std::min<int>(Count, instruction.destination_swizzle().size()))
+				{
+				case 1: break;
+				case 2: expr = float_point_t<2>::ctor(boolean_expr<2>{ expr }).to_string(); break;
+				case 3: expr = float_point_t<3>::ctor(boolean_expr<3>{ expr }).to_string(); break;
+				case 4: expr = float_point_t<4>::ctor(boolean_expr<4>{ expr }).to_string(); break;
+
+				default:
+					throw std::logic_error("bad destination swizzle.");
+				}
+
+				return base::max(base::abs(arg), expression_t<Type, Count>{ expr }) * base::sign(arg);
 			}
 
 			builder::expression_base_t decode_instruction()
