@@ -189,9 +189,9 @@ namespace rsx
 				return (instruction.data.d2.iaddrh << 3) | instruction.data.d3.iaddrl;
 			}
 
-			integer_expr<1> address_register()
+			integer_expr<4> address_register()
 			{
-				return{ context.address_register(instruction.data.d0.addr_reg_sel_1), context.address_mask(instruction.data.d0.addr_swz), true, 4 };
+				return context.address_register(instruction.data.d0.addr_reg_sel_1);
 			}
 
 			float_point_expr<4> swizzle_as_dst(float_point_expr<4> arg) const
@@ -667,7 +667,7 @@ namespace rsx
 				case (u32)vec_opcode_t::max: return set_dst(base::max(src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::slt: return set_dst(compare(base::compare_function::less, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
 				case (u32)vec_opcode_t::sge: return set_dst(compare(base::compare_function::greater_equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
-				case (u32)vec_opcode_t::arl: return typename base::writer_t{} += address_register() = base::clamp(integer_t<1>::ctor(src(0).x()), -512, 511);
+				case (u32)vec_opcode_t::arl: return typename base::writer_t{} += address_register() = base::clamp(integer_t<4>::ctor(src(0)), -512, 511);
 				case (u32)vec_opcode_t::frc: return set_dst(base::fract(src_swizzled_as_dst(0)));
 				case (u32)vec_opcode_t::flr: return set_dst(base::floor(src_swizzled_as_dst(0)));;
 				case (u32)vec_opcode_t::seq: return set_dst(compare(base::compare_function::equal, src_swizzled_as_dst(0), src_swizzled_as_dst(1)));
