@@ -662,8 +662,8 @@ namespace rsx
 				case (u32)opcode_t::kil: return conditional(typename base::void_expr{ "discard;" });
 				case (u32)opcode_t::pk4: return set_dst(base::pack_snorm_4x8(src(0)));
 				case (u32)opcode_t::up4: return set_dst(base::unpack_snorm_4x8(integer_t<1>::ctor(src(0).x())));
-				case (u32)opcode_t::ddx: return set_dst(base::ddx(src(0).xy()).xyxy(), disable_swizzle_as_dst);
-				case (u32)opcode_t::ddy: return set_dst(base::ddy(src(0).xy()).xyxy(), disable_swizzle_as_dst);
+				case (u32)opcode_t::ddx: return set_dst(base::ddx(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
+				case (u32)opcode_t::ddy: return set_dst(base::ddy(src_swizzled_as_dst(0)), disable_swizzle_as_dst);
 				case (u32)opcode_t::tex: return set_dst(base::texture_fetch(texture_index(), texture_coords()), allow_bx2);
 				case (u32)opcode_t::txp: return set_dst(base::texture_fetch(texture_index(), texture_coords() / src(0).w()), allow_bx2);
 				case (u32)opcode_t::txd: return set_dst(base::texture_grad_fetch(texture_index(), texture_coords(), src(1), src(2)), allow_bx2);
