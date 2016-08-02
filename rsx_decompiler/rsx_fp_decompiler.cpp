@@ -522,11 +522,11 @@ namespace rsx
 
 							for (std::pair<int, int> channels : entry.second)
 							{
-								src_swizzle += src.swizzle(flags & disable_swizzle_as_dst ? channels.second : channels.first).mask[0];
+								src_swizzle += src.swizzle(channels.first).mask[0];
 								dst_swizzle += dest.swizzle(channels.second).mask[0];
 							}
 
-							float_point_expr<4> expression{ src.with_mask(src_swizzle) };
+							float_point_expr<4> expression{ (flags & disable_swizzle_as_dst)? src: src.with_mask(src_swizzle) };
 
 							if (!instruction.data.dst.no_dest)
 							{
